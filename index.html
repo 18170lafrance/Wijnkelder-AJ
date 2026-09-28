@@ -271,7 +271,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.06</div>
+<div id="version">v1.08</div>
 
 <script>
 const CFG='wijn_cfg';
@@ -445,13 +445,14 @@ Begin je antwoord direct met { en eindig met }`;
 
   document.getElementById('scanModelTxt').textContent = 'Etiket analyseren met AI…';
 
+  // WORKER_URL wordt ingevuld na Cloudflare Worker deploy
+  const WORKER_URL = 'https://wijnbibliotheek.18170lafrance.workers.dev';
+
   try{
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
         messages: [{
           role: 'user',
           content: [
