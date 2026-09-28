@@ -98,6 +98,12 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .panel-field label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
 .panel-field input,.panel-field select,.panel-field textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--ink);background:var(--cream);resize:vertical;}
 .panel-field textarea{min-height:80px;}
+.notes-preview{font-size:13px;color:var(--ink);line-height:1.7;margin-top:8px;padding:10px 12px;background:var(--warm);border-radius:8px;display:none;}
+.notes-preview p{margin:0 0 4px;}
+.notes-preview p:last-child{margin:0;}
+.notes-preview strong{color:var(--claret);}
+.wc-notes{font-size:12px;color:var(--muted);padding:0 12px 10px;line-height:1.6;}
+.wc-notes strong{color:var(--ink);font-weight:600;}
 .panel-field input:focus,.panel-field select:focus,.panel-field textarea:focus{outline:none;border-color:var(--claret);}
 .panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .panel-stars{display:flex;gap:6px;padding:4px 0;}
@@ -107,6 +113,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .panel-actions{display:flex;gap:8px;padding:0 16px 16px;}
 .btn-save{flex:1;padding:12px;border-radius:var(--r);border:none;background:var(--claret);color:#fff;font-size:15px;font-weight:600;cursor:pointer;}
 .btn-save:active{background:var(--claret-light);}
+.btn-share{padding:12px 14px;border-radius:var(--r);border:1px solid var(--gold);background:var(--card);color:var(--gold);font-size:17px;cursor:pointer;transition:background .15s;}
+.btn-share:active{background:var(--warm);}
 .btn-trash{padding:12px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:15px;cursor:pointer;}
 
 /* SCAN */
@@ -296,7 +304,11 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
             <option value="rehoboam">Rehoboam — 4,5 L (6 flessen)</option>
           </select>
         </div>
-        <div class="sff"><label>Notities &amp; smaakervaring</label><textarea id="fNotes" placeholder="Smaakprofiel, afdronk, spijscombinaties…"></textarea></div>
+        <div class="sff">
+          <label>Notities &amp; smaakervaring</label>
+          <textarea id="fNotes" placeholder="Aroma: fruitig, kruidig…&#10;Smaak: vol, rond…&#10;Afdronk: lang, warm…&#10;Serveertemperatuur: 16-18°C&#10;Spijscombinaties: rood vlees…" oninput="updateNotesPreview('fNotes','fNotesPreview')"></textarea>
+          <div class="notes-preview" id="fNotesPreview"></div>
+        </div>
         <button class="btn-primary" onclick="saveWine()">Toevoegen aan bibliotheek</button>
         <button class="btn-secondary" onclick="resetScan()">↩ Opnieuw scannen</button>
       </div>
@@ -363,7 +375,11 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <option value="rehoboam">Rehoboam — 4,5 L</option>
       </select>
     </div>
-    <div class="panel-field"><label>Notities &amp; smaakervaring</label><textarea id="pNotes"></textarea></div>
+    <div class="panel-field">
+      <label>Notities &amp; smaakervaring</label>
+      <textarea id="pNotes" placeholder="Aroma: …&#10;Smaak: …&#10;Afdronk: …&#10;Serveertemperatuur: …&#10;Spijscombinaties: …" oninput="updateNotesPreview('pNotes','pNotesPreview')"></textarea>
+      <div class="notes-preview" id="pNotesPreview"></div>
+    </div>
     <div class="panel-field">
       <label>Beoordeling</label>
       <div class="panel-stars" id="panelStars">
@@ -377,6 +393,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   </div>
   <div class="panel-actions">
     <button class="btn-save" onclick="savePanel()">Opslaan</button>
+    <button class="btn-share" onclick="shareWine()" title="Delen">⬆</button>
     <button class="btn-trash" onclick="deletePanelWine()">🗑</button>
   </div>
 </div>
@@ -397,7 +414,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.52</div>
+<div id="version">v1.60</div>
 
 <script>
 const SB_URL='https://qjlgbyzogovfxdkadvan.supabase.co';
@@ -427,6 +444,57 @@ const TI={
   dessert:{label:'Dessert',emoji:'🍯',bc:'b-des',color:'#8B6010'},
   port:{label:'Port',emoji:'🍾',bc:'b-port',color:'#3D0C1F'}
 };
+
+/* ── NOTITIES FORMATTER ── */
+function formatNotes(text){
+  if(!text)return'';
+  // Splits op regeleinden of op "Onderwerp:" patronen
+  // Detecteer "Woord(en):" aan het begin van een segment
+  const lines=text
+    .split(/\n|(?=\b[A-ZÀ-Ö][a-zà-ö\s]{1,25}:)/)
+    .map(l=>l.trim())
+    .filter(l=>l.length>0);
+  return lines.map(line=>{
+    // Vette opmaak: tekst tot en met de eerste ":" is het label
+    const colonIdx=line.indexOf(':');
+    if(colonIdx>0&&colonIdx<40){
+      const label=line.substring(0,colonIdx+1);
+      const rest=line.substring(colonIdx+1).trim();
+      if(rest) return`<p><strong>${esc(label)}</strong> ${esc(rest)}</p>`;
+      return`<p><strong>${esc(label)}</strong></p>`;
+    }
+    return`<p>${esc(line)}</p>`;
+  }).join('');
+}
+
+function notesCardPreview(text){
+  if(!text)return'';
+  const lines=text
+    .split(/\n|(?=\b[A-ZÀ-Ö][a-zà-ö\s]{1,25}:)/)
+    .map(l=>l.trim())
+    .filter(l=>l.length>0)
+    .slice(0,2); // max 2 regels op kaart
+  return lines.map(line=>{
+    const colonIdx=line.indexOf(':');
+    if(colonIdx>0&&colonIdx<40){
+      const label=line.substring(0,colonIdx+1);
+      const rest=line.substring(colonIdx+1).trim();
+      if(rest) return`<strong>${esc(label)}</strong> ${esc(rest)}`;
+    }
+    return esc(line);
+  }).join('<br>');
+}
+
+function updateNotesPreview(textareaId, previewId){
+  const text=document.getElementById(textareaId).value;
+  const preview=document.getElementById(previewId);
+  if(text.trim()){
+    preview.innerHTML=formatNotes(text);
+    preview.style.display='block';
+  } else {
+    preview.style.display='none';
+  }
+}
 
 /* ── SUPABASE ── */
 function hdrs(){return{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};}
@@ -507,6 +575,8 @@ function wcHTML(w){
   const photoEl=w.foto
     ?`<img class="wc-photo" src="${w.foto}" alt="etiket" onerror="this.style.display='none'">`
     :`<div class="wc-photo-placeholder">${t.emoji}</div>`;
+  // Notities: toon eerste 2 onderdelen op de kaart
+  const notesHtml=notesCardPreview(w.notities);
   return `<div class="wc" id="wc-${w.id}" onclick="openPanel('${w.id}')">
     <div class="wc-top">
       ${photoEl}
@@ -522,6 +592,7 @@ function wcHTML(w){
         </div>
       </div>
     </div>
+    ${notesHtml?`<div class="wc-notes">${notesHtml}</div>`:''}
     <div class="wc-bottom">
       <div class="wc-stars-small">${starsHtml}</div>
       <div class="wc-actions" onclick="event.stopPropagation()">
@@ -672,6 +743,7 @@ function openPanel(id){
   document.getElementById('pStock').value=w.voorraad||0;
   document.getElementById('pFormat').value=VALID_FORMATS.includes(w.formaat)?w.formaat:'standard';
   document.getElementById('pNotes').value=w.notities||'';
+  updateNotesPreview('pNotes','pNotesPreview');
   updatePanelStars();
   // Open
   document.getElementById('panelOverlay').classList.add('open');
@@ -737,6 +809,51 @@ async function savePanel(){
     saveBtn.textContent='Opslaan';
     saveBtn.disabled=false;
     toast('Opslaan mislukt — controleer je verbinding');
+  }
+}
+
+async function shareWine(){
+  if(!panelWineId)return;
+  const w=wines.find(x=>x.id===panelWineId);if(!w)return;
+  const t=TI[w.type]||TI.red;
+  const fmt=FORMATS[w.formaat||'standard']||FORMATS.standard;
+  const stars=w.beoordeling?'★'.repeat(w.beoordeling)+'☆'.repeat(5-w.beoordeling):'Niet beoordeeld';
+
+  // Bouw deeltekst op
+  const lines=[
+    `${t.emoji} ${w.naam}`,
+    w.producent?`Producent: ${w.producent}`:'',
+    [w.regio,w.druivenras].filter(Boolean).join(' · '),
+    w.jaar?`Oogstjaar: ${w.jaar}`:'',
+    `Type: ${t.label}`,
+    fmt.cl!==75?`Formaat: ${fmt.label}`:'',
+    w.prijs?`Prijs: €${parseFloat(w.prijs).toFixed(2)}`:'',
+    `Beoordeling: ${stars}`,
+    '',
+    w.notities?`Smaakervaring:\n${w.notities.replace(/\n/g,'\n')}` : '',
+    '',
+    '— Gedeeld via Wijnbibliotheek 🍷',
+  ].filter(l=>l!==undefined&&(l===''||l.length>0));
+
+  const text=lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  const title=`${w.naam}${w.jaar?' '+w.jaar:''}`;
+
+  // Web Share API — werkt op iOS en Android
+  if(navigator.share){
+    try{
+      await navigator.share({title, text});
+    }catch(err){
+      if(err.name!=='AbortError') toast('Delen mislukt: '+err.message);
+    }
+  } else {
+    // Fallback: kopieer naar klembord
+    try{
+      await navigator.clipboard.writeText(text);
+      toast('Wijninfo gekopieerd naar klembord ✓');
+    }catch(err){
+      // Laatste fallback: toon tekst in prompt
+      prompt('Kopieer deze tekst om te delen:',text);
+    }
   }
 }
 
@@ -864,8 +981,9 @@ async function handleImage(e){
 
   const prompt=`Je bent een Master of Wine. Analyseer dit wijnetiket zorgvuldig.
 Geef ALLEEN een JSON object terug. Geen uitleg, geen markdown, geen backticks.
-{"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras of blend","regio":"appellation, land","prijs_schatting":14.99,"notities":"uitgebreid smaakprofiel: aroma, smaak, afdronk, serveertemperatuur, spijscombinaties"}
+{"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras of blend","regio":"appellation, land","prijs_schatting":14.99,"notities":"Aroma: beschrijving. Smaak: beschrijving. Afdronk: beschrijving. Serveertemperatuur: graden. Spijscombinaties: beschrijving."}
 type is exact één van: red, white, rose, sparkling, dessert, port
+Voor notities: schrijf elk onderdeel op een NIEUWE REGEL als "Onderwerp: omschrijving." met exact deze onderwerpen: Aroma, Smaak, Afdronk, Serveertemperatuur, Spijscombinaties
 Gebruik null voor onleesbare velden. Begin direct met {`;
 
   document.getElementById('scanModelTxt').textContent='Etiket analyseren met AI…';
@@ -902,6 +1020,7 @@ Gebruik null voor onleesbare velden. Begin direct met {`;
     document.getElementById('fRegion').value=wine.regio||'';
     document.getElementById('fPrice').value=wine.prijs_schatting||'';
     document.getElementById('fNotes').value=wine.notities||'';
+    updateNotesPreview('fNotes','fNotesPreview');
     document.getElementById('fStock').value='1';
 
     // Duplicaatdetectie
@@ -942,6 +1061,8 @@ function clearForm(){
   document.getElementById('fType').value='red';
   document.getElementById('fStock').value='1';
   document.getElementById('fFormat').value='standard';
+  const fp=document.getElementById('fNotesPreview');
+  if(fp){fp.innerHTML='';fp.style.display='none';}
 }
 
 function resetScan(){
