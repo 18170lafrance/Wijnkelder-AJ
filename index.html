@@ -98,12 +98,14 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .panel-field label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
 .panel-field input,.panel-field select,.panel-field textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--ink);background:var(--cream);resize:vertical;}
 .panel-field textarea{min-height:80px;}
-.notes-preview{font-size:13px;color:var(--ink);line-height:1.7;margin-top:8px;padding:10px 12px;background:var(--warm);border-radius:8px;display:none;}
-.notes-preview p{margin:0 0 4px;}
+.notes-wrap{position:relative;}
+.notes-preview{font-size:13px;color:var(--ink);line-height:1.8;padding:10px 12px;background:var(--warm);border-radius:8px;display:none;}
+.notes-preview p{margin:0 0 6px;}
 .notes-preview p:last-child{margin:0;}
-.notes-preview strong{color:var(--claret);}
-.wc-notes{font-size:12px;color:var(--muted);padding:0 12px 10px;line-height:1.6;}
-.wc-notes strong{color:var(--ink);font-weight:600;}
+.notes-preview strong{color:var(--claret);font-weight:600;}
+.notes-edit-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 0;text-decoration:underline;display:none;margin-top:4px;}
+.wc-notes{font-size:12px;color:var(--muted);padding:0 12px 10px;line-height:1.7;}
+.wc-notes strong{color:var(--claret);font-weight:600;}
 .panel-field input:focus,.panel-field select:focus,.panel-field textarea:focus{outline:none;border-color:var(--claret);}
 .panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .panel-stars{display:flex;gap:6px;padding:4px 0;}
@@ -306,8 +308,11 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         </div>
         <div class="sff">
           <label>Notities &amp; smaakervaring</label>
-          <textarea id="fNotes" placeholder="Aroma: fruitig, kruidig…&#10;Smaak: vol, rond…&#10;Afdronk: lang, warm…&#10;Serveertemperatuur: 16-18°C&#10;Spijscombinaties: rood vlees…" oninput="updateNotesPreview('fNotes','fNotesPreview')"></textarea>
-          <div class="notes-preview" id="fNotesPreview"></div>
+          <div class="notes-wrap">
+            <textarea id="fNotes" placeholder="Aroma: fruitig, kruidig…&#10;Smaak: vol, rond…&#10;Afdronk: lang, warm…&#10;Serveertemperatuur: 16-18°C&#10;Spijscombinaties: rood vlees…" oninput="updateNotesPreview('fNotes','fNotesPreview','fNotesEdit')"></textarea>
+            <div class="notes-preview" id="fNotesPreview"></div>
+            <button type="button" class="notes-edit-btn" id="fNotesEdit" onclick="editNotes('fNotes','fNotesPreview','fNotesEdit')">✏️ Bewerken</button>
+          </div>
         </div>
         <button class="btn-primary" onclick="saveWine()">Toevoegen aan bibliotheek</button>
         <button class="btn-secondary" onclick="resetScan()">↩ Opnieuw scannen</button>
@@ -377,8 +382,11 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
     </div>
     <div class="panel-field">
       <label>Notities &amp; smaakervaring</label>
-      <textarea id="pNotes" placeholder="Aroma: …&#10;Smaak: …&#10;Afdronk: …&#10;Serveertemperatuur: …&#10;Spijscombinaties: …" oninput="updateNotesPreview('pNotes','pNotesPreview')"></textarea>
-      <div class="notes-preview" id="pNotesPreview"></div>
+      <div class="notes-wrap">
+        <textarea id="pNotes" placeholder="Aroma: …&#10;Smaak: …&#10;Afdronk: …&#10;Serveertemperatuur: …&#10;Spijscombinaties: …" oninput="updateNotesPreview('pNotes','pNotesPreview','pNotesEdit')"></textarea>
+        <div class="notes-preview" id="pNotesPreview"></div>
+        <button type="button" class="notes-edit-btn" id="pNotesEdit" onclick="editNotes('pNotes','pNotesPreview','pNotesEdit')">✏️ Bewerken</button>
+      </div>
     </div>
     <div class="panel-field">
       <label>Beoordeling</label>
@@ -414,7 +422,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.60</div>
+<div id="version">v1.63</div>
 
 <script>
 const SB_URL='https://qjlgbyzogovfxdkadvan.supabase.co';
@@ -485,15 +493,37 @@ function notesCardPreview(text){
   }).join('<br>');
 }
 
-function updateNotesPreview(textareaId, previewId){
-  const text=document.getElementById(textareaId).value;
+function updateNotesPreview(textareaId, previewId, editBtnId){
+  const ta=document.getElementById(textareaId);
   const preview=document.getElementById(previewId);
-  if(text.trim()){
+  const editBtn=editBtnId?document.getElementById(editBtnId):null;
+  const text=ta.value.trim();
+  if(text){
     preview.innerHTML=formatNotes(text);
     preview.style.display='block';
+    ta.style.display='none';
+    if(editBtn) editBtn.style.display='block';
   } else {
     preview.style.display='none';
+    ta.style.display='block';
+    if(editBtn) editBtn.style.display='none';
   }
+}
+
+function editNotes(textareaId, previewId, editBtnId){
+  const ta=document.getElementById(textareaId);
+  const preview=document.getElementById(previewId);
+  const editBtn=document.getElementById(editBtnId);
+  preview.style.display='none';
+  editBtn.style.display='none';
+  ta.style.display='block';
+  ta.focus();
+  // Cursor aan het einde
+  ta.selectionStart=ta.selectionEnd=ta.value.length;
+  // Verberg preview weer zodra focus verloren gaat en er tekst is
+  ta.onblur=()=>{
+    if(ta.value.trim()) updateNotesPreview(textareaId,previewId,editBtnId);
+  };
 }
 
 /* ── SUPABASE ── */
@@ -743,7 +773,7 @@ function openPanel(id){
   document.getElementById('pStock').value=w.voorraad||0;
   document.getElementById('pFormat').value=VALID_FORMATS.includes(w.formaat)?w.formaat:'standard';
   document.getElementById('pNotes').value=w.notities||'';
-  updateNotesPreview('pNotes','pNotesPreview');
+  updateNotesPreview('pNotes','pNotesPreview','pNotesEdit');
   updatePanelStars();
   // Open
   document.getElementById('panelOverlay').classList.add('open');
@@ -1020,7 +1050,7 @@ Gebruik null voor onleesbare velden. Begin direct met {`;
     document.getElementById('fRegion').value=wine.regio||'';
     document.getElementById('fPrice').value=wine.prijs_schatting||'';
     document.getElementById('fNotes').value=wine.notities||'';
-    updateNotesPreview('fNotes','fNotesPreview');
+    updateNotesPreview('fNotes','fNotesPreview','fNotesEdit');
     document.getElementById('fStock').value='1';
 
     // Duplicaatdetectie
@@ -1063,6 +1093,10 @@ function clearForm(){
   document.getElementById('fFormat').value='standard';
   const fp=document.getElementById('fNotesPreview');
   if(fp){fp.innerHTML='';fp.style.display='none';}
+  const fta=document.getElementById('fNotes');
+  if(fta) fta.style.display='block';
+  const feb=document.getElementById('fNotesEdit');
+  if(feb) feb.style.display='none';
 }
 
 function resetScan(){
