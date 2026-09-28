@@ -439,7 +439,7 @@ async function handleImage(e){
 
   try{
     const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GKEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GKEY}`,
       {
         method:'POST',
         headers:{'Content-Type':'application/json'},
