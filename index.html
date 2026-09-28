@@ -67,6 +67,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .b-rose{background:#FAE8EC;color:#8B2A40;}.b-spark{background:#EAF2F8;color:#1A5276;}
 .b-des{background:#F4EAD5;color:#6B4A0A;}.b-port{background:#F0E0E8;color:#3D0C1F;}.b-year{background:var(--warm);color:var(--muted);}
 .b-price{background:#F0EBF8;color:#4A2080;}
+.b-format{background:#E8F0F8;color:#2A4A6B;}
 .b-ok{background:var(--success-bg);color:var(--success);}
 .b-low{background:var(--warning-bg);color:var(--warning);}
 .b-zero{background:var(--danger-bg);color:var(--danger);}
@@ -283,7 +284,17 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         </div>
         <div class="sf-grid">
           <div class="sff"><label>Prijs (€)</label><input type="number" id="fPrice" placeholder="14.99" step="0.01" min="0"></div>
-          <div class="sff"><label>Flessen</label><input type="number" id="fStock" value="1" min="1"></div>
+          <div class="sff"><label>Aantal flessen</label><input type="number" id="fStock" value="1" min="1"></div>
+        </div>
+        <div class="sff"><label>Flesformaat</label>
+          <select id="fFormat">
+            <option value="piccolo">Piccolo — 18,7 cl (¼ fles)</option>
+            <option value="half">Half fles — 37,5 cl (½ fles)</option>
+            <option value="standard" selected>Standaard — 75 cl (1 fles)</option>
+            <option value="magnum">Magnum — 1,5 L (2 flessen)</option>
+            <option value="double_magnum">Double Magnum / Jeroboam — 3 L (4 flessen)</option>
+            <option value="rehoboam">Rehoboam — 4,5 L (6 flessen)</option>
+          </select>
         </div>
         <div class="sff"><label>Notities &amp; smaakervaring</label><textarea id="fNotes" placeholder="Smaakprofiel, afdronk, spijscombinaties…"></textarea></div>
         <button class="btn-primary" onclick="saveWine()">Toevoegen aan bibliotheek</button>
@@ -340,7 +351,17 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
     </div>
     <div class="panel-grid">
       <div class="panel-field"><label>Prijs (€)</label><input type="number" id="pPrice" step="0.01" min="0"></div>
-      <div class="panel-field"><label>Flessen</label><input type="number" id="pStock" min="0"></div>
+      <div class="panel-field"><label>Aantal flessen</label><input type="number" id="pStock" min="0"></div>
+    </div>
+    <div class="panel-field"><label>Flesformaat</label>
+      <select id="pFormat">
+        <option value="piccolo">Piccolo — 18,7 cl</option>
+        <option value="half">Half fles — 37,5 cl</option>
+        <option value="standard">Standaard — 75 cl</option>
+        <option value="magnum">Magnum — 1,5 L</option>
+        <option value="double_magnum">Double Magnum / Jeroboam — 3 L</option>
+        <option value="rehoboam">Rehoboam — 4,5 L</option>
+      </select>
     </div>
     <div class="panel-field"><label>Notities &amp; smaakervaring</label><textarea id="pNotes"></textarea></div>
     <div class="panel-field">
@@ -376,7 +397,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.51</div>
+<div id="version">v1.52</div>
 
 <script>
 const SB_URL='https://qjlgbyzogovfxdkadvan.supabase.co';
@@ -387,6 +408,16 @@ let wines=[];
 let filter='all';
 let panelWineId=null;
 let panelStar=0;
+
+const FORMATS={
+  piccolo:   {label:'Piccolo',     short:'Piccolo',   cl:18.7},
+  half:      {label:'Half fles',   short:'Half',      cl:37.5},
+  standard:  {label:'Standaard',   short:'75cl',      cl:75},
+  magnum:    {label:'Magnum',      short:'Magnum',    cl:150},
+  double_magnum:{label:'Double Magnum',short:'D.Magnum',cl:300},
+  rehoboam:  {label:'Rehoboam',    short:'Rehoboam',  cl:450},
+};
+const VALID_FORMATS=Object.keys(FORMATS);
 
 const TI={
   red:{label:'Rood',emoji:'🍷',bc:'b-red',color:'#8B1A2A'},
@@ -486,6 +517,7 @@ function wcHTML(w){
           <span class="badge ${t.bc}">${t.label}</span>
           ${w.jaar?`<span class="badge b-year">${w.jaar}</span>`:''}
           ${w.prijs?`<span class="badge b-price">€${parseFloat(w.prijs).toFixed(2)}</span>`:''}
+          ${w.formaat&&w.formaat!=='standard'?`<span class="badge b-format">${FORMATS[w.formaat]?.short||w.formaat}</span>`:''}
           <span class="badge ${sc}">${sl}</span>
         </div>
       </div>
@@ -508,23 +540,28 @@ async function adjStock(id,d){
   const nv=Math.max(0,(w.voorraad||0)+d);
   const old=w.voorraad;
   w.voorraad=nv;
+  // Refresh alle actieve views consistent
   renderLib();
-  // Ook subview en voorraad refreshen als die open zijn
-  if(document.getElementById('subview').classList.contains('open')){
-    const title=document.getElementById('subviewTitle').textContent;
-    const key=title.split(' (')[0];
-    // herrender subview met zelfde filter
-    document.getElementById('subviewList').querySelectorAll('[id^="wc-"]').forEach(el=>{
-      const wEl=wines.find(x=>x.id===el.id.replace('wc-',''));
-      if(wEl)el.outerHTML=wcHTML(wEl);
-    });
-  }
+  refreshSubviewIfOpen();
+  if(document.getElementById('view-stock').classList.contains('active')) renderStock();
   try{
     await sbPatch(id,{voorraad:nv});
     toast(d>0?'+1 fles toegevoegd':'Genoten van '+w.naam+' 🍷');
   }catch(e){
-    w.voorraad=old;renderLib();toast('Opslaan mislukt');
+    w.voorraad=old;
+    renderLib();
+    refreshSubviewIfOpen();
+    toast('Opslaan mislukt');
   }
+}
+
+function refreshSubviewIfOpen(){
+  const sv=document.getElementById('subview');
+  if(!sv.classList.contains('open'))return;
+  // Herlaad subview met zelfde filterkey (opgeslagen als data-attr)
+  const key=sv.dataset.filterKey;
+  const title=sv.dataset.filterTitle;
+  if(key&&title) showSubview(key,title);
 }
 
 /* ── DUPLICAAT DETECTIE ── */
@@ -603,7 +640,6 @@ function openPanelFromDup(id){
   const el=document.getElementById('dupWarning');
   if(el)el.remove();
   switchTab('library');
-  document.querySelector('.tab').click();
   setTimeout(()=>openPanel(id),300);
 }
 
@@ -634,6 +670,7 @@ function openPanel(id){
   document.getElementById('pRegion').value=w.regio||'';
   document.getElementById('pPrice').value=w.prijs||'';
   document.getElementById('pStock').value=w.voorraad||0;
+  document.getElementById('pFormat').value=VALID_FORMATS.includes(w.formaat)?w.formaat:'standard';
   document.getElementById('pNotes').value=w.notities||'';
   updatePanelStars();
   // Open
@@ -663,7 +700,7 @@ function updatePanelStars(){
 async function savePanel(){
   if(!panelWineId)return;
   const w=wines.find(x=>x.id===panelWineId);if(!w)return;
-  const id=panelWineId; // bewaar ID vóór closePanel
+  const id=panelWineId;
   const updated={
     naam:document.getElementById('pName').value.trim()||w.naam,
     producent:document.getElementById('pProducer').value.trim()||null,
@@ -674,17 +711,26 @@ async function savePanel(){
     prijs:parseFloat(document.getElementById('pPrice').value)||null,
     voorraad:parseInt(document.getElementById('pStock').value)||0,
     notities:document.getElementById('pNotes').value.trim()||null,
-    beoordeling:panelStar||null,
+    formaat:VALID_FORMATS.includes(document.getElementById('pFormat').value)?document.getElementById('pFormat').value:'standard',
+    beoordeling:panelStar>0?panelStar:null,
   };
-  // Eerst opslaan in Supabase, dan pas sluiten
   const saveBtn=document.getElementById('detailPanel').querySelector('.btn-save');
   saveBtn.textContent='Opslaan…';
   saveBtn.disabled=true;
   try{
     await sbPatch(id,updated);
-    Object.assign(w,updated); // lokaal bijwerken na succesvolle save
+    // Lokaal bijwerken NADAT Supabase succesvol was
+    Object.assign(w,updated);
     closePanel();
+    // Refresh alle actieve views
     renderLib();
+    // Voorraad view refreshen als die actief is
+    if(document.getElementById('view-stock').classList.contains('active')){
+      renderStock();
+    }
+    // Subview refreshen als die open is
+    refreshSubviewIfOpen();
+    updateSubtitle();
     toast('Wijzigingen opgeslagen ✓');
   }catch(e){
     console.error('savePanel fout:',e);
@@ -731,11 +777,14 @@ function renderStock(){
     </div>`;
   }).join('');
 
-  // Per beoordeling
+  // Per beoordeling — null en 0 zijn beide "niet beoordeeld"
+  const isRated=w=>w.beoordeling!=null&&w.beoordeling>0;
+  const unratedCount=wines.filter(w=>!isRated(w)).length;
   const sEl=document.getElementById('starRatings');
   const rows=[];
   for(let s=5;s>=1;s--){
-    const count=wines.filter(w=>(w.beoordeling||0)===s).length;
+    const count=wines.filter(w=>isRated(w)&&w.beoordeling===s).length;
+    if(count===0)continue; // sla lege sterren over
     const starsHtml=[1,2,3,4,5].map(i=>`<span class="srr-star ${i<=s?'':'off'}">★</span>`).join('');
     rows.push(`<div class="star-rating-row" onclick="showSubview('stars:${s}','${s} sterren')">
       <div class="srr-stars">${starsHtml}</div>
@@ -743,11 +792,12 @@ function renderStock(){
       <div class="srr-val">${count}</div>
     </div>`);
   }
-  if(unrated>0) rows.push(`<div class="star-rating-row" onclick="showSubview('stars:0','Niet beoordeeld')">
+  if(unratedCount>0) rows.push(`<div class="star-rating-row" onclick="showSubview('stars:0','Niet beoordeeld')">
     <div class="srr-stars">${[1,2,3,4,5].map(()=>`<span class="srr-star off">★</span>`).join('')}</div>
     <div class="srr-count">Niet beoordeeld</div>
-    <div class="srr-val">${unrated}</div>
+    <div class="srr-val">${unratedCount}</div>
   </div>`);
+  if(!rows.length) rows.push(`<div class="brk-row"><div class="brk-name" style="color:var(--muted)">Nog geen beoordelingen</div></div>`);
   sEl.innerHTML=rows.join('');
 
   // Lage voorraad
@@ -772,13 +822,18 @@ function showSubview(filterKey, title){
   else if(filterKey.startsWith('type:')) list=wines.filter(w=>w.type===filterKey.split(':')[1]);
   else if(filterKey.startsWith('stars:')){
     const s=parseInt(filterKey.split(':')[1]);
-    list=wines.filter(w=>(w.beoordeling||0)===s);
+    if(s===0) list=wines.filter(w=>!w.beoordeling||w.beoordeling===0);
+    else list=wines.filter(w=>w.beoordeling===s);
   }
+  const sv=document.getElementById('subview');
+  // Sla filterKey op zodat refresh mogelijk is
+  sv.dataset.filterKey=filterKey;
+  sv.dataset.filterTitle=title;
   document.getElementById('subviewTitle').textContent=title+' ('+list.length+')';
   document.getElementById('subviewList').innerHTML=list.length
     ? list.map(w=>wcHTML(w)).join('')
-    : '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Geen wijnen</div></div>';
-  document.getElementById('subview').classList.add('open');
+    : '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Geen wijnen gevonden</div></div>';
+  sv.classList.add('open');
 }
 
 function closeSubview(){
@@ -884,7 +939,9 @@ function showManual(){clearForm();document.getElementById('scanForm').style.disp
 function clearForm(){
   ['fName','fProducer','fYear','fGrape','fRegion','fPrice'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fNotes').value='';
-  document.getElementById('fType').value='red';document.getElementById('fStock').value='1';
+  document.getElementById('fType').value='red';
+  document.getElementById('fStock').value='1';
+  document.getElementById('fFormat').value='standard';
 }
 
 function resetScan(){
@@ -925,6 +982,7 @@ async function saveWine(){
     prijs:parseFloat(document.getElementById('fPrice').value)||null,
     voorraad:parseInt(document.getElementById('fStock').value)||1,
     notities:document.getElementById('fNotes').value.trim()||null,
+    formaat:document.getElementById('fFormat').value||'standard',
     foto:foto,
   };
   try{
@@ -941,7 +999,10 @@ function switchTab(name){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
   document.getElementById('tab-'+name).classList.add('active');
-  if(name==='stock')renderStock();
+  if(name==='stock') renderStock();
+  if(name==='library') renderLib();
+  // Subview sluiten bij tab-wissel
+  document.getElementById('subview').classList.remove('open');
 }
 
 /* ── TOAST ── */
