@@ -100,9 +100,15 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .scan-zone{border:2px dashed var(--border);border-radius:var(--r);background:var(--card);text-align:center;cursor:pointer;overflow:hidden;min-height:160px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:border-color .2s;}
 .scan-zone:hover{border-color:var(--gold);}
 .scan-ph{padding:32px 20px;}
-.scan-ph-icon{font-size:44px;margin-bottom:10px;}
-.scan-ph-label{font-size:15px;font-weight:500;color:var(--ink);}
-.scan-ph-sub{font-size:13px;color:var(--muted);margin-top:4px;}
+.scan-ph-icon{font-size:48px;margin-bottom:12px;}
+.scan-ph-label{font-size:16px;font-weight:600;color:var(--ink);}
+.scan-ph-sub{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5;}
+.scan-zone{position:relative;}
+.scan-corner{position:absolute;width:24px;height:24px;border-color:var(--gold);border-style:solid;opacity:.7;}
+.scan-corner.tl{top:10px;left:10px;border-width:3px 0 0 3px;}
+.scan-corner.tr{top:10px;right:10px;border-width:3px 3px 0 0;}
+.scan-corner.bl{bottom:10px;left:10px;border-width:0 0 3px 3px;}
+.scan-corner.br{bottom:10px;right:10px;border-width:0 3px 3px 0;}
 #scanPreview{width:100%;max-height:240px;object-fit:cover;display:none;}
 #fileInput{display:none;}
 .scan-loading{text-align:center;padding:28px 0;display:none;}
@@ -193,11 +199,15 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <div class="view" id="view-scan">
     <div class="scan-wrap">
       <div class="scan-zone" id="scanZone" onclick="document.getElementById('fileInput').click()">
+        <div class="scan-corner tl"></div>
+        <div class="scan-corner tr"></div>
+        <div class="scan-corner bl"></div>
+        <div class="scan-corner br"></div>
         <img id="scanPreview" alt="Etiket">
         <div class="scan-ph" id="scanPh">
           <div class="scan-ph-icon">📷</div>
-          <div class="scan-ph-label">Foto maken of uploaden</div>
-          <div class="scan-ph-sub">Tik hier om een etiket te scannen</div>
+          <div class="scan-ph-label">Richt op het wijnetiket</div>
+          <div class="scan-ph-sub">Tik hier om een foto te maken<br>of een afbeelding te uploaden</div>
         </div>
       </div>
       <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImage(event)">
@@ -407,36 +417,112 @@ async function handleImage(e){
   document.getElementById('scanLoading').style.display='block';
   document.getElementById('scanForm').style.display='none';
   document.getElementById('manualBtn').style.display='none';
+
+  // Resize image to max 1024px to keep payload small and avoid API limits
+  let b64, mimeType;
+  try {
+    const result = await resizeAndEncode(file, 1024);
+    b64 = result.b64;
+    mimeType = result.mimeType;
+  } catch(err) {
+    document.getElementById('scanLoading').style.display='none';
+    document.getElementById('scanForm').style.display='block';
+    toast('Afbeelding kon niet worden geladen');
+    clearForm();
+    return;
+  }
+
+  const GKEY='AQ.Ab8RN6LdEmu1Fj9fxGgsqLl_nUP4rHppmlhYGcaLcfHBOy_JSA';
+  const prompt='Analyseer dit wijnetiket zorgvuldig. Gebruik je wijnkennis om het te identificeren. Geef ALLEEN een geldig JSON object terug, geen uitleg, geen markdown, geen backticks. Formaat: {"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras","regio":"regio en land","prijs_schatting":14.99,"notities":"smaakprofiel, serveertemperatuur en spijscombinaties"} Type moet exact een van deze waarden zijn: red, white, rose, sparkling, dessert. Gebruik null als iets niet leesbaar is.';
+
   try{
-    const b64=await toB64(file);
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',max_tokens:1000,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:file.type,data:b64}},
-          {type:'text',text:'Analyseer dit wijnetiket. Geef ALLEEN een JSON object terug, geen uitleg, geen markdown backticks. Formaat: {"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red|white|rose|sparkling|dessert","druivenras":"ras of blend","regio":"regio en land","prijs_schatting":14.99,"notities":"korte smaakbeschrijving"} Gebruik null als iets niet leesbaar is. Schat prijs in euro op basis van stijl en producent.'}
-        ]}]
-      })
-    });
-    const data=await resp.json();
-    const raw=(data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
-    const wine=JSON.parse(raw);
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GKEY}`,
+      {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          contents:[{parts:[
+            {inline_data:{mime_type:mimeType, data:b64}},
+            {text:prompt}
+          ]}],
+          generationConfig:{temperature:0.1, maxOutputTokens:800, responseMimeType:'application/json'}
+        })
+      }
+    );
+
+    if(!resp.ok){
+      const errText = await resp.text();
+      console.error('Gemini API fout:', resp.status, errText);
+      // Try to show useful error
+      let errMsg = 'Scan mislukt ('+resp.status+')';
+      try {
+        const errJson = JSON.parse(errText);
+        if(errJson.error?.message) errMsg = errJson.error.message;
+      } catch(e){}
+      toast(errMsg);
+      clearForm();
+      document.getElementById('scanLoading').style.display='none';
+      document.getElementById('scanForm').style.display='block';
+      return;
+    }
+
+    const data = await resp.json();
+    console.log('Gemini response:', JSON.stringify(data).substring(0,500));
+
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if(!rawText){
+      const reason = data.candidates?.[0]?.finishReason || 'onbekend';
+      toast('Geen resultaat van Gemini ('+reason+')');
+      clearForm();
+      document.getElementById('scanLoading').style.display='none';
+      document.getElementById('scanForm').style.display='block';
+      return;
+    }
+
+    const clean = rawText.replace(/```json|```/g,'').trim();
+    const wine = JSON.parse(clean);
+
     document.getElementById('fName').value=wine.naam||'';
     document.getElementById('fProducer').value=wine.producent||'';
     document.getElementById('fYear').value=wine.jaar||'';
-    document.getElementById('fType').value=wine.type||'red';
+    document.getElementById('fType').value=['red','white','rose','sparkling','dessert'].includes(wine.type)?wine.type:'red';
     document.getElementById('fGrape').value=wine.druivenras||'';
     document.getElementById('fRegion').value=wine.regio||'';
     document.getElementById('fPrice').value=wine.prijs_schatting||'';
     document.getElementById('fNotes').value=wine.notities||'';
     document.getElementById('fStock').value='1';
+
   }catch(err){
-    console.error(err);toast('Scan mislukt — vul handmatig in');clearForm();
+    console.error('Scan fout:', err);
+    toast('Scan mislukt: '+err.message);
+    clearForm();
   }
+
   document.getElementById('scanLoading').style.display='none';
   document.getElementById('scanForm').style.display='block';
+}
+
+function resizeAndEncode(file, maxPx){
+  return new Promise((res, rej)=>{
+    const img = new Image();
+    const objUrl = URL.createObjectURL(file);
+    img.onload = ()=>{
+      URL.revokeObjectURL(objUrl);
+      let w=img.width, h=img.height;
+      if(w>maxPx||h>maxPx){
+        if(w>h){h=Math.round(h*maxPx/w);w=maxPx;}
+        else{w=Math.round(w*maxPx/h);h=maxPx;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.85);
+      res({b64:dataUrl.split(',')[1], mimeType:'image/jpeg'});
+    };
+    img.onerror=rej;
+    img.src=objUrl;
+  });
 }
 
 function toB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
