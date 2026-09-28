@@ -271,7 +271,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.04</div>
+<div id="version">v1.05</div>
 
 <script>
 const CFG='wijn_cfg';
@@ -436,28 +436,53 @@ async function handleImage(e){
 
   const GKEY='AIzaSyBrl8DG-698rOBeo1Pdy9vDKRR-umIniKs';
 
-  // Pick best available vision model
+  // Detect available models and show them
+  let model = '';
   const preferredModels = [
     'gemini-1.5-pro',
     'gemini-1.5-flash',
     'gemini-2.0-flash',
     'gemini-2.0-flash-lite',
     'gemini-pro-vision',
+    'gemini-pro',
   ];
-  let model = 'gemini-1.5-flash'; // safe fallback
   try {
+    document.getElementById('scanModelTxt').textContent = 'Beschikbare modellen ophalen…';
     const mResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GKEY}`);
-    if(mResp.ok){
-      const mData = await mResp.json();
-      const available = (mData.models||[])
-        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-        .map(m => m.name.replace('models/',''));
-      console.log('Beschikbare modellen:', available);
-      for(const pref of preferredModels){
-        if(available.includes(pref)){ model = pref; break; }
-      }
+    const mData = await mResp.json();
+    if(!mResp.ok){
+      toast('Model lijst fout: ' + (mData.error?.message || mResp.status));
+      document.getElementById('scanLoading').style.display='none';
+      document.getElementById('scanForm').style.display='block';
+      clearForm();
+      return;
     }
-  } catch(e){ console.warn('Model detectie mislukt, gebruik fallback:', model); }
+    const available = (mData.models||[])
+      .filter(m => (m.supportedGenerationMethods||[]).includes('generateContent'))
+      .map(m => m.name.replace('models/',''));
+    console.log('Alle beschikbare generateContent modellen:', available);
+    // Show in toast so user can see
+    toast('Beschikbare modellen: ' + (available.length ? available.join(', ') : 'geen gevonden'));
+    for(const pref of preferredModels){
+      if(available.find(a => a.startsWith(pref))){ model = available.find(a => a.startsWith(pref)); break; }
+    }
+    // If none of preferred found, just take first available
+    if(!model && available.length) model = available[0];
+  } catch(e){
+    console.warn('Model detectie mislukt:', e);
+    toast('Model detectie mislukt: ' + e.message);
+    document.getElementById('scanLoading').style.display='none';
+    document.getElementById('scanForm').style.display='block';
+    clearForm();
+    return;
+  }
+  if(!model){
+    toast('Geen geschikt Gemini model gevonden voor deze API key');
+    document.getElementById('scanLoading').style.display='none';
+    document.getElementById('scanForm').style.display='block';
+    clearForm();
+    return;
+  }
   console.log('Gebruik model:', model);
   document.getElementById('scanModelTxt').textContent = `Analyseren met ${model}…`;
 
