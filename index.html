@@ -104,6 +104,13 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .notes-preview p:last-child{margin:0;}
 .notes-preview strong{color:var(--claret);font-weight:600;}
 .notes-edit-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 0;text-decoration:underline;display:none;margin-top:4px;}
+.type-notice{background:#EEF4FF;border:1px solid #6B8FD4;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;color:#2A3A6B;display:none;}
+.type-notice.warn{background:var(--warning-bg);border-color:var(--warning);color:var(--warning);}
+.type-notice strong{display:block;margin-bottom:4px;}
+.type-notice-actions{display:flex;gap:8px;margin-top:8px;}
+.type-notice-actions button{flex:1;padding:7px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);}
+.type-notice-actions .btn-accept{background:var(--claret);color:#fff;border-color:var(--claret);}
+.type-loading{display:none;font-size:12px;color:var(--muted);margin-top:8px;text-align:center;}
 .wc-notes{font-size:12px;color:var(--muted);padding:0 12px 10px;line-height:1.7;}
 .wc-notes strong{color:var(--claret);font-weight:600;}
 .panel-field input:focus,.panel-field select:focus,.panel-field textarea:focus{outline:none;border-color:var(--claret);}
@@ -115,7 +122,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .panel-actions{display:flex;gap:8px;padding:0 16px 16px;}
 .btn-save{flex:1;padding:12px;border-radius:var(--r);border:none;background:var(--claret);color:#fff;font-size:15px;font-weight:600;cursor:pointer;}
 .btn-save:active{background:var(--claret-light);}
-.btn-share{padding:12px 14px;border-radius:var(--r);border:1px solid var(--gold);background:var(--card);color:var(--gold);font-size:17px;cursor:pointer;transition:background .15s;}
+.btn-share{padding:12px 14px;border-radius:var(--r);border:1px solid var(--gold);background:var(--card);color:var(--gold);cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;}
 .btn-share:active{background:var(--warm);}
 .btn-trash{padding:12px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:15px;cursor:pointer;}
 
@@ -278,7 +285,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="sf-grid">
           <div class="sff"><label>Jaar</label><input type="number" id="fYear" placeholder="2020" min="1900" max="2030"></div>
           <div class="sff"><label>Type</label>
-            <select id="fType">
+            <select id="fType" onchange="onTypeChange('f')">
               <option value="red">🍷 Rood</option>
               <option value="white">🥂 Wit</option>
               <option value="rose">🌸 Rosé</option>
@@ -292,6 +299,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
           <div class="sff"><label>Druivenras</label><input type="text" id="fGrape" placeholder="Cabernet, Merlot…"></div>
           <div class="sff"><label>Regio</label><input type="text" id="fRegion" placeholder="Bordeaux, Toscane…"></div>
         </div>
+        <div class="type-notice" id="fTypeNotice"></div>
+        <div class="type-loading" id="fTypeLoading"><div class="spinner" style="width:20px;height:20px;margin:0 auto 4px"></div>Nieuwe wijninfo ophalen…</div>
         <div class="sf-grid">
           <div class="sff"><label>Prijs (€)</label><input type="number" id="fPrice" placeholder="14.99" step="0.01" min="0"></div>
           <div class="sff"><label>Aantal flessen</label><input type="number" id="fStock" value="1" min="1"></div>
@@ -352,13 +361,13 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
     <div class="panel-grid">
       <div class="panel-field"><label>Jaar</label><input type="number" id="pYear" min="1900" max="2030"></div>
       <div class="panel-field"><label>Type</label>
-        <select id="pType">
+        <select id="pType" onchange="onTypeChange('p')">
           <option value="red">🍷 Rood</option>
           <option value="white">🥂 Wit</option>
           <option value="rose">🌸 Rosé</option>
           <option value="sparkling">✨ Mousseux</option>
           <option value="dessert">🍯 Dessert</option>
-              <option value="port">🍾 Port</option>
+          <option value="port">🍾 Port</option>
         </select>
       </div>
     </div>
@@ -366,6 +375,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="panel-field"><label>Druivenras</label><input type="text" id="pGrape"></div>
       <div class="panel-field"><label>Regio</label><input type="text" id="pRegion"></div>
     </div>
+    <div class="type-notice" id="pTypeNotice"></div>
+    <div class="type-loading" id="pTypeLoading"><div class="spinner" style="width:20px;height:20px;margin:0 auto 4px"></div>Nieuwe wijninfo ophalen…</div>
     <div class="panel-grid">
       <div class="panel-field"><label>Prijs (€)</label><input type="number" id="pPrice" step="0.01" min="0"></div>
       <div class="panel-field"><label>Aantal flessen</label><input type="number" id="pStock" min="0"></div>
@@ -401,7 +412,12 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   </div>
   <div class="panel-actions">
     <button class="btn-save" onclick="savePanel()">Opslaan</button>
-    <button class="btn-share" onclick="shareWine()" title="Delen">⬆</button>
+    <button class="btn-share" onclick="shareWine()" title="Delen">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+    </button>
     <button class="btn-trash" onclick="deletePanelWine()">🗑</button>
   </div>
 </div>
@@ -422,7 +438,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.63</div>
+<div id="version">v1.64</div>
 
 <script>
 const SB_URL='https://qjlgbyzogovfxdkadvan.supabase.co';
@@ -452,6 +468,97 @@ const TI={
   dessert:{label:'Dessert',emoji:'🍯',bc:'b-des',color:'#8B6010'},
   port:{label:'Port',emoji:'🍾',bc:'b-port',color:'#3D0C1F'}
 };
+
+/* ── TYPE WIJZIGING ── */
+async function onTypeChange(prefix){
+  const naam=(document.getElementById(prefix+'Name')||{value:''}).value.trim();
+  const producent=(document.getElementById(prefix+'Producer')||{value:''}).value.trim();
+  const jaar=parseInt((document.getElementById(prefix+'Year')||{value:''}).value)||null;
+  const type=document.getElementById(prefix+'Type').value;
+  const noticeEl=document.getElementById(prefix+'TypeNotice');
+  const loadingEl=document.getElementById(prefix+'TypeLoading');
+
+  // Geen naam ingevuld — niets doen
+  if(!naam){
+    noticeEl.style.display='none';
+    return;
+  }
+
+  // Toon loader
+  noticeEl.style.display='none';
+  loadingEl.style.display='block';
+
+  const typeLabels={red:'rode',white:'witte',rose:'rosé',sparkling:'mousseux',dessert:'dessert',port:'port'};
+  const prompt=`Je bent een wijnexpert. Geef informatie over "${naam}"${producent?' van '+producent:''} als ${typeLabels[type]||type} wijn${jaar?' uit jaar '+jaar:''}.
+Geef ALLEEN een JSON object terug, geen uitleg, geen markdown, geen backticks.
+Formaat:
+{"bekend":true,"jaar_klopt":true,"dichtstbijzijnd_jaar":null,"druivenras":"ras","regio":"regio, land","prijs_schatting":14.99,"notities":"Aroma: ...\\nSmaak: ...\\nAfdronk: ...\\nServeertemperatuur: ...\\nSpijscombinaties: ...\\nBewaren: optimale bewaarperiode en drinkvenster.","melding":null}
+- bekend: false als deze wijn totaal onbekend is
+- jaar_klopt: false als het opgegeven jaar niet bestaat of ongebruikelijk is voor deze wijn
+- dichtstbijzijnd_jaar: vul het dichtstbijzijnde bekende/aanbevolen jaar in als jaar_klopt false is, anders null
+- melding: korte Nederlandse melding als bekend=false of jaar_klopt=false, anders null
+Begin direct met {`;
+
+  try{
+    const resp=await fetch(WORKER_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:[{role:'user',content:[{type:'text',text:prompt}]}]})
+    });
+    loadingEl.style.display='none';
+    if(!resp.ok){toast('Wijninfo ophalen mislukt');return;}
+    const data=await resp.json();
+    const raw=(data.content?.[0]?.text||'').trim();
+    const s=raw.indexOf('{'),e=raw.lastIndexOf('}');
+    if(s===-1||e===-1){toast('Onverwacht antwoord van AI');return;}
+    const info=JSON.parse(raw.substring(s,e+1));
+
+    // Velden bijwerken
+    if(info.druivenras) document.getElementById(prefix+'Grape').value=info.druivenras;
+    if(info.regio) document.getElementById(prefix+'Region').value=info.regio;
+    if(info.prijs_schatting) document.getElementById(prefix+'Price').value=info.prijs_schatting;
+    if(info.notities){
+      const notesId=prefix+'Notes';
+      const previewId=prefix+'NotesPreview';
+      const editId=prefix+'NotesEdit';
+      document.getElementById(notesId).value=info.notities;
+      updateNotesPreview(notesId,previewId,editId);
+    }
+
+    // Melding tonen
+    if(!info.bekend||!info.jaar_klopt){
+      noticeEl.className='type-notice'+((!info.bekend)?'':' warn');
+      let html='';
+      if(!info.bekend){
+        html=`<strong>⚠️ Wijn niet bekend</strong>${info.melding||'Deze wijn is niet bekend in de database.'}`;
+      } else if(!info.jaar_klopt){
+        html=`<strong>📅 Jaar ongebruikelijk</strong>${info.melding||'Het opgegeven jaar is ongebruikelijk voor deze wijn.'}`;
+        if(info.dichtstbijzijnd_jaar){
+          html+=`<div class="type-notice-actions">
+            <button onclick="acceptYear(${info.dichtstbijzijnd_jaar},'${prefix}','${prefix}TypeNotice')" class="btn-accept">Jaar ${info.dichtstbijzijnd_jaar} gebruiken</button>
+            <button onclick="document.getElementById('${prefix}TypeNotice').style.display='none'">Jaar behouden</button>
+          </div>`;
+        }
+      }
+      noticeEl.innerHTML=html;
+      noticeEl.style.display='block';
+    } else {
+      noticeEl.style.display='none';
+      toast('Wijninfo bijgewerkt voor '+typeLabels[type]+' type ✓');
+    }
+
+  }catch(err){
+    loadingEl.style.display='none';
+    console.error('Type wijziging fout:',err);
+    toast('Wijninfo ophalen mislukt: '+err.message);
+  }
+}
+
+function acceptYear(year, prefix, noticeId){
+  document.getElementById(prefix+'Year').value=year;
+  document.getElementById(noticeId).style.display='none';
+  toast('Jaar bijgewerkt naar '+year);
+}
 
 /* ── NOTITIES FORMATTER ── */
 function formatNotes(text){
@@ -786,6 +893,10 @@ function closePanel(){
   document.getElementById('panelOverlay').classList.remove('open');
   document.getElementById('detailPanel').classList.remove('open');
   panelWineId=null;
+  // Reset type notices
+  ['pTypeNotice','pTypeLoading'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display='none';
+  });
 }
 
 function setPanelStar(n){
@@ -860,7 +971,7 @@ async function shareWine(){
     w.prijs?`Prijs: €${parseFloat(w.prijs).toFixed(2)}`:'',
     `Beoordeling: ${stars}`,
     '',
-    w.notities?`Smaakervaring:\n${w.notities.replace(/\n/g,'\n')}` : '',
+    w.notities?`Smaakervaring & bewaren:\n${w.notities}` : '',
     '',
     '— Gedeeld via Wijnbibliotheek 🍷',
   ].filter(l=>l!==undefined&&(l===''||l.length>0));
@@ -1011,9 +1122,9 @@ async function handleImage(e){
 
   const prompt=`Je bent een Master of Wine. Analyseer dit wijnetiket zorgvuldig.
 Geef ALLEEN een JSON object terug. Geen uitleg, geen markdown, geen backticks.
-{"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras of blend","regio":"appellation, land","prijs_schatting":14.99,"notities":"Aroma: beschrijving. Smaak: beschrijving. Afdronk: beschrijving. Serveertemperatuur: graden. Spijscombinaties: beschrijving."}
+{"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras of blend","regio":"appellation, land","prijs_schatting":14.99,"notities":"Aroma: ...\nSmaak: ...\nAfdronk: ...\nServeertemperatuur: ...\nSpijscombinaties: ...\nBewaren: optimale bewaarperiode, drinkvenster en aanbevelingen voor kelder."}
 type is exact één van: red, white, rose, sparkling, dessert, port
-Voor notities: schrijf elk onderdeel op een NIEUWE REGEL als "Onderwerp: omschrijving." met exact deze onderwerpen: Aroma, Smaak, Afdronk, Serveertemperatuur, Spijscombinaties
+Voor notities: schrijf elk onderdeel op een NIEUWE REGEL als "Onderwerp: omschrijving" met exact deze onderwerpen in deze volgorde: Aroma, Smaak, Afdronk, Serveertemperatuur, Spijscombinaties, Bewaren
 Gebruik null voor onleesbare velden. Begin direct met {`;
 
   document.getElementById('scanModelTxt').textContent='Etiket analyseren met AI…';
@@ -1106,8 +1217,12 @@ function resetScan(){
   document.getElementById('scanLoading').style.display='none';
   document.getElementById('scanForm').style.display='none';
   document.getElementById('manualBtn').style.display='block';
-  const dup=document.getElementById('dupWarning');
-  if(dup)dup.remove();
+  const dup=document.getElementById('dupWarning');if(dup)dup.remove();
+  // Reset typeNotice en loading
+  ['fTypeNotice','fTypeLoading'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display='none';
+  });
+  clearForm();
 }
 
 async function saveWine(){
@@ -1155,7 +1270,6 @@ function switchTab(name){
   document.getElementById('view-'+name).classList.add('active');
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='stock') renderStock();
-  if(name==='library') renderLib();
   // Subview sluiten bij tab-wissel
   document.getElementById('subview').classList.remove('open');
 }
