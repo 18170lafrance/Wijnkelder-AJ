@@ -160,35 +160,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </head>
 <body>
 
-<!-- SETUP -->
-<div id="setupOverlay">
-  <div class="setup-logo">🍷</div>
-  <div class="setup-title">Wijnbibliotheek</div>
-  <div class="setup-sub">Verbind je eigen Supabase-database<br>om te beginnen</div>
-  <div class="setup-card">
-    <h2>Database instellen</h2>
-    <p>Voer je Supabase-gegevens in. Dit hoef je maar één keer te doen op dit apparaat.</p>
-    <div class="sf">
-      <label>Project URL</label>
-      <input type="url" id="cfgUrl" placeholder="https://xxxxx.supabase.co" autocomplete="off" spellcheck="false">
-      <div class="sf-hint">Supabase → Project Settings → API → Project URL</div>
-    </div>
-    <div class="sf">
-      <label>Anon Public Key</label>
-      <input type="password" id="cfgKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…" autocomplete="off" spellcheck="false">
-      <div class="sf-hint">Supabase → Project Settings → API → anon public</div>
-    </div>
-    <button class="btn-setup" onclick="saveConfig()">Verbinden →</button>
-    <div class="setup-err" id="setupErr"></div>
-  </div>
-  <div class="setup-steps">
-    <p><strong>Nog geen Supabase-account?</strong><br>
-    1. Ga naar <strong>supabase.com</strong> en maak een gratis account<br>
-    2. Maak een nieuw project aan, kies regio <strong>West EU (Ireland)</strong><br>
-    3. Ga naar SQL Editor en voer de setup-SQL uit (zie bijgeleverde gids)<br>
-    4. Kopieer URL en anon key hierboven</p>
-  </div>
-</div>
+<div id="setupOverlay" class="hidden"></div>
 
 <!-- HEADER -->
 <header>
@@ -197,7 +169,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="h-title">🍷 Wijnbibliotheek</div>
       <div class="h-sub" id="hSub">Verbinding instellen…</div>
     </div>
-    <button class="btn-cfg" onclick="openSettings()">⚙ Instellingen</button>
+
   </div>
 </header>
 
@@ -291,7 +263,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 
 <script>
 const CFG='wijn_cfg';
-let SB_URL='',SB_KEY='';
+const SB_URL='https://qjlgbyzogovfxdkadvan.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqbGdieXpvZ292Znhka2FkdmFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NDI5MTIsImV4cCI6MjEwNjAxODkxMn0.9muIXMlljQz0TraFlx30kV9r5Cdxshx4yms6_TU6DoM';
 let wines=[];
 let filter='all';
 const TI={
@@ -302,27 +275,10 @@ const TI={
   dessert:{label:'Dessert',emoji:'🍯',bc:'b-des',color:'#8B6010'}
 };
 
-function loadCfg(){try{const c=JSON.parse(localStorage.getItem(CFG)||'{}');SB_URL=c.url||'';SB_KEY=c.key||'';}catch(e){}}
+function loadCfg(){/* keys hardcoded */}
 
-function saveConfig(){
-  const url=document.getElementById('cfgUrl').value.trim().replace(/\/$/,'');
-  const key=document.getElementById('cfgKey').value.trim();
-  const err=document.getElementById('setupErr');
-  if(!url||!url.startsWith('https://')){err.textContent='Voer een geldige URL in (begint met https://)';err.style.display='block';return;}
-  if(!key||key.length<20){err.textContent='Voer een geldige API-sleutel in';err.style.display='block';return;}
-  localStorage.setItem(CFG,JSON.stringify({url,key}));
-  SB_URL=url;SB_KEY=key;
-  document.getElementById('setupOverlay').classList.add('hidden');
-  init();
-}
-
-function openSettings(){
-  const c=JSON.parse(localStorage.getItem(CFG)||'{}');
-  document.getElementById('cfgUrl').value=c.url||'';
-  document.getElementById('cfgKey').value=c.key||'';
-  document.getElementById('setupErr').style.display='none';
-  document.getElementById('setupOverlay').classList.remove('hidden');
-}
+function saveConfig(){}
+function openSettings(){}
 
 function hdrs(){return{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};}
 
@@ -347,7 +303,7 @@ async function sbDelete(id){
 }
 
 async function init(){
-  if(!SB_URL||!SB_KEY){document.getElementById('setupOverlay').classList.remove('hidden');return;}
+
   document.getElementById('hSub').textContent='Laden…';
   try{
     wines=await sbGet();
@@ -562,8 +518,8 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('show'),2800);
 }
 
-loadCfg();
-if(SB_URL&&SB_KEY){document.getElementById('setupOverlay').classList.add('hidden');init();}
+document.getElementById('setupOverlay').classList.add('hidden');
+init();
 </script>
 </body>
 </html>
