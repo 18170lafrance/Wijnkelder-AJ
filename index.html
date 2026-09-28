@@ -214,7 +214,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImage(event)">
       <div class="scan-loading" id="scanLoading">
         <div class="spinner"></div>
-        <p>Etiket analyseren met AI…</p>
+        <p>Etiket analyseren… (kan 5-10 sec duren)</p>
       </div>
       <div class="scan-form" id="scanForm">
         <div class="sff"><label>Wijnnaam</label><input type="text" id="fName" placeholder="Naam van de wijn"></div>
@@ -423,7 +423,7 @@ async function handleImage(e){
   // Resize image to max 1024px to keep payload small and avoid API limits
   let b64, mimeType;
   try {
-    const result = await resizeAndEncode(file, 1024);
+    const result = await resizeAndEncode(file, 1600);
     b64 = result.b64;
     mimeType = result.mimeType;
   } catch(err) {
@@ -435,17 +435,18 @@ async function handleImage(e){
   }
 
   const GKEY='AIzaSyBrl8DG-698rOBeo1Pdy9vDKRR-umIniKs';
-  const prompt=`Je bent een wijnexpert. Analyseer dit wijnetiket en geef de informatie terug als JSON.
+  const prompt=`Je bent een Master of Wine met encyclopedische kennis van wereldwijnen. Analyseer dit wijnetiket zorgvuldig — ook als het decoratief, handgeschreven of in een vreemde taal is.
+Gebruik je wijnkennis om ontbrekende details aan te vullen op basis van producent, regio en stijl.
 Geef ALLEEN een JSON object terug, niets anders. Geen uitleg, geen markdown, geen backticks voor of na.
 Gebruik exact deze structuur:
-{"naam":"volledige wijnnaam","producent":"naam van producent of domein","jaar":2021,"type":"red","druivenras":"druivenras of blend","regio":"regio, land","prijs_schatting":14.99,"notities":"smaakprofiel en spijscombinaties"}
+{"naam":"volledige wijnnaam","producent":"naam van producent of domein","jaar":2021,"type":"red","druivenras":"druivenras of blend","regio":"appellation of regio, land","prijs_schatting":14.99,"notities":"uitgebreid smaakprofiel met aroma, smaak, afdronk, ideale serveertemperatuur en spijscombinaties"}
 Voor type gebruik je exact één van: red, white, rose, sparkling, dessert
-Voor onleesbare velden gebruik je null
+Voor onleesbare velden gebruik je null — maar vul zoveel mogelijk in op basis van je wijnkennis
 Begin je antwoord direct met { en eindig met }`;
 
   try{
     const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GKEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GKEY}`,
       {
         method:'POST',
         headers:{'Content-Type':'application/json'},
