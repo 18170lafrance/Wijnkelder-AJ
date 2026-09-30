@@ -893,6 +893,23 @@ async function adjStockLocatie(wijnId,locatieId,delta){
   }
 }
 
+async function setKaartLocatie(wijnId,locatieId){
+  const w=wines.find(x=>x.id===wijnId);if(!w)return;
+  // Toggle: al actief dan uitzetten, anders aanzetten
+  const nieuw=w.kaart_locatie_id===locatieId?null:locatieId;
+  w.kaart_locatie_id=nieuw;
+  // Herrender paneel locaties zodat knop bijwerkt
+  renderPanelLocaties(wijnId);
+  // Kaart bijwerken
+  renderLib();
+  // Opslaan in Supabase
+  try{
+    await sbPatch(wijnId,{kaart_locatie_id:nieuw});
+  }catch(e){
+    console.error('Kaartlocatie opslaan mislukt:',e);
+  }
+}
+
 async function savePanelPositie(wijnId,locatieId,positie){
   if(!wijnLocaties[wijnId])return;
   const wl=wijnLocaties[wijnId].find(x=>x.locatie_id===locatieId);
@@ -914,17 +931,25 @@ function renderPanelLocaties(wijnId){
     return;
   }
   const wls=wijnLocaties[wijnId]||[];
+  const w=wines.find(x=>x.id===wijnId);
+  const kaartLocId=w?w.kaart_locatie_id||'':'';
   el.innerHTML=locaties.map(loc=>{
     const wl=wls.find(x=>x.locatie_id===loc.id)||{voorraad:0,positie:''};
     const n=wl.voorraad||0;
-    return`<div class="loc-stock-row">
+    const isKaart=kaartLocId===loc.id;
+    return`<div class="loc-stock-row" id="locrow-${loc.id}">
       <span class="loc-stock-icon">📍</span>
       <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span class="loc-stock-name">${esc(loc.naam)}</span>
           <button class="loc-stock-btn drk" onclick="adjStockLocatie('${wijnId}','${loc.id}',-1)" ${n<=0?'disabled':''}>−</button>
           <span class="loc-stock-num">${n}</span>
           <button class="loc-stock-btn add" onclick="adjStockLocatie('${wijnId}','${loc.id}',1)">+</button>
+          <button onclick="setKaartLocatie('${wijnId}','${loc.id}')"
+            style="margin-left:auto;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid ${isKaart?'var(--claret)':'var(--border)'};background:${isKaart?'var(--claret)':'var(--card)'};color:${isKaart?'#fff':'var(--muted)'};white-space:nowrap"
+            title="Toon deze locatie op de wijnkaart">
+            ${isKaart?'✓ Op kaart':'Op kaart'}
+          </button>
         </div>
         <input type="text"
           style="margin-top:5px;width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--cream);color:var(--muted)"
@@ -957,10 +982,12 @@ function drinkStatus(w){
 }
 
 function locatieBadgesHTML(wijnId){
+  const w=wines.find(x=>x.id===wijnId);
+  if(!w||!w.kaart_locatie_id) return'';
   const wls=wijnLocaties[wijnId]||[];
-  const actief=wls.filter(x=>x.voorraad>0);
-  if(!actief.length) return'';
-  return actief.map(wl=>`<span class="loc-badge">📍 ${esc(wl.naam)}${wl.positie?' · '+esc(wl.positie):''}: ${wl.voorraad}</span>`).join('');
+  const wl=wls.find(x=>x.locatie_id===w.kaart_locatie_id&&x.voorraad>0);
+  if(!wl) return'';
+  return`<span class="loc-badge">📍 ${esc(wl.naam)}${wl.positie?' · '+esc(wl.positie):''}: ${wl.voorraad}</span>`;
 }
 
 function drinkBadgeHTML(w){
