@@ -71,6 +71,10 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .b-ok{background:var(--success-bg);color:var(--success);}
 .b-low{background:var(--warning-bg);color:var(--warning);}
 .b-zero{background:var(--danger-bg);color:var(--danger);}
+.b-drink-now{background:#E8F4ED;color:#1A5E35;border:1px solid #A8D5B8;}
+.b-drink-soon{background:#FEF9EC;color:#7A6010;border:1px solid #E0C870;}
+.b-drink-wait{background:#EAF2F8;color:#1A4A6B;border:1px solid #A8C8E8;}
+.b-drink-past{background:#F5E8E8;color:#7A2020;border:1px solid #E0A8A8;}
 .wc-bottom{display:flex;align-items:center;justify-content:space-between;padding:0 12px 10px;}
 .wc-stars-small{display:flex;gap:2px;}
 .star-s{font-size:14px;color:var(--gold);}
@@ -238,6 +242,9 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <button class="chip" onclick="setFilter('sparkling',this)">✨ Mousseux</button>
         <button class="chip" onclick="setFilter('port',this)">🍾 Port</button>
         <button class="chip" onclick="setFilter('instock',this)">Op voorraad</button>
+        <button class="chip" onclick="setFilter('drink:now',this)">🟢 Nu drinken</button>
+        <button class="chip" onclick="setFilter('drink:soon',this)">🟡 Binnenkort</button>
+        <button class="chip" onclick="setFilter('drink:wait',this)">🔵 Bewaren</button>
       </div>
       <div class="sort-bar">
         <label>Sortering:</label>
@@ -305,6 +312,10 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
           <div class="sff"><label>Prijs (€)</label><input type="number" id="fPrice" placeholder="14.99" step="0.01" min="0"></div>
           <div class="sff"><label>Aantal flessen</label><input type="number" id="fStock" value="1" min="1"></div>
         </div>
+        <div class="sf-grid">
+          <div class="sff"><label>Meest waardevol van</label><input type="number" id="fDrinkVan" placeholder="2024" min="2000" max="2060"></div>
+          <div class="sff"><label>Meest waardevol tot</label><input type="number" id="fDrinkTot" placeholder="2028" min="2000" max="2060"></div>
+        </div>
         <div class="sff"><label>Flesformaat</label>
           <select id="fFormat">
             <option value="piccolo">Piccolo — 18,7 cl (¼ fles)</option>
@@ -338,6 +349,8 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="brk-card" id="breakdown"></div>
       <div class="sec-title" style="margin-top:20px">Per beoordeling</div>
       <div class="star-rating-section" id="starRatings"></div>
+      <div class="sec-title" style="margin-top:20px">Per drinkvenster</div>
+      <div class="brk-card" id="drinkWindow"></div>
       <div class="sec-title" style="margin-top:20px">Lage voorraad</div>
       <div class="low-list" id="lowList"></div>
     </div>
@@ -380,6 +393,10 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
     <div class="panel-grid">
       <div class="panel-field"><label>Prijs (€)</label><input type="number" id="pPrice" step="0.01" min="0"></div>
       <div class="panel-field"><label>Aantal flessen</label><input type="number" id="pStock" min="0"></div>
+    </div>
+    <div class="panel-grid">
+      <div class="panel-field"><label>Meest waardevol van</label><input type="number" id="pDrinkVan" min="2000" max="2060" placeholder="2024"></div>
+      <div class="panel-field"><label>Meest waardevol tot</label><input type="number" id="pDrinkTot" min="2000" max="2060" placeholder="2028"></div>
     </div>
     <div class="panel-field"><label>Flesformaat</label>
       <select id="pFormat">
@@ -438,7 +455,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 </nav>
 
 <div id="toast"></div>
-<div id="version">v1.64</div>
+<div id="version">v1.65</div>
 
 <script>
 const SB_URL='https://qjlgbyzogovfxdkadvan.supabase.co';
@@ -670,6 +687,31 @@ function updateSubtitle(){
   document.getElementById('hSub').textContent=wines.length+' wijn'+(wines.length!==1?'en':'')+' in je kelder';
 }
 
+/* ── DRINKVENSTER ── */
+const HUIDIG_JAAR=new Date().getFullYear();
+
+function drinkStatus(w){
+  const van=w.drink_van?parseInt(w.drink_van):null;
+  const tot=w.drink_tot?parseInt(w.drink_tot):null;
+  if(!van&&!tot) return null;
+  const nu=HUIDIG_JAAR;
+  if(tot&&nu>tot) return{key:'past',label:'Voorbij drinkvenster',cls:'b-drink-past',icon:'⚪'};
+  if(van&&nu<van) return{key:'wait',label:`Bewaren tot ${van}`,cls:'b-drink-wait',icon:'🔵'};
+  if(tot&&nu>=van&&nu<=tot){
+    const jaren=tot-nu;
+    if(jaren<=2) return{key:'soon',label:`Binnenkort: tot ${tot}`,cls:'b-drink-soon',icon:'🟡'};
+    return{key:'now',label:`Nu drinken: t/m ${tot}`,cls:'b-drink-now',icon:'🟢'};
+  }
+  if(!van&&tot&&nu<=tot) return{key:'now',label:`Nu drinken: t/m ${tot}`,cls:'b-drink-now',icon:'🟢'};
+  return null;
+}
+
+function drinkBadgeHTML(w){
+  const ds=drinkStatus(w);
+  if(!ds) return'';
+  return`<span class="badge ${ds.cls}">${ds.icon} ${ds.label}</span>`;
+}
+
 /* ── LIBRARY ── */
 function setFilter(f,el){
   filter=f;
@@ -682,6 +724,10 @@ function renderLib(){
   let list=[...wines];
   // Type filter
   if(filter==='instock') list=list.filter(w=>(w.voorraad||0)>0);
+  else if(filter.startsWith('drink:')){
+    const dk=filter.split(':')[1];
+    list=list.filter(w=>{const ds=drinkStatus(w);return ds&&ds.key===dk;});
+  }
   else if(filter!=='all') list=list.filter(w=>w.type===filter);
   // Price filter
   const pMin=parseFloat(document.getElementById('priceMin').value);
@@ -726,6 +772,7 @@ function wcHTML(w){
           ${w.prijs?`<span class="badge b-price">€${parseFloat(w.prijs).toFixed(2)}</span>`:''}
           ${w.formaat&&w.formaat!=='standard'?`<span class="badge b-format">${FORMATS[w.formaat]?.short||w.formaat}</span>`:''}
           <span class="badge ${sc}">${sl}</span>
+          ${drinkBadgeHTML(w)}
         </div>
       </div>
     </div>
@@ -878,6 +925,8 @@ function openPanel(id){
   document.getElementById('pRegion').value=w.regio||'';
   document.getElementById('pPrice').value=w.prijs||'';
   document.getElementById('pStock').value=w.voorraad||0;
+  document.getElementById('pDrinkVan').value=w.drink_van||'';
+  document.getElementById('pDrinkTot').value=w.drink_tot||'';
   document.getElementById('pFormat').value=VALID_FORMATS.includes(w.formaat)?w.formaat:'standard';
   document.getElementById('pNotes').value=w.notities||'';
   updateNotesPreview('pNotes','pNotesPreview','pNotesEdit');
@@ -925,6 +974,8 @@ async function savePanel(){
     voorraad:parseInt(document.getElementById('pStock').value)||0,
     notities:document.getElementById('pNotes').value.trim()||null,
     formaat:VALID_FORMATS.includes(document.getElementById('pFormat').value)?document.getElementById('pFormat').value:'standard',
+    drink_van:parseInt(document.getElementById('pDrinkVan').value)||null,
+    drink_tot:parseInt(document.getElementById('pDrinkTot').value)||null,
     beoordeling:panelStar>0?panelStar:null,
   };
   const saveBtn=document.getElementById('detailPanel').querySelector('.btn-save');
@@ -969,6 +1020,7 @@ async function shareWine(){
     `Type: ${t.label}`,
     fmt.cl!==75?`Formaat: ${fmt.label}`:'',
     w.prijs?`Prijs: €${parseFloat(w.prijs).toFixed(2)}`:'',
+    (w.drink_van||w.drink_tot)?`Meest waardevol: ${w.drink_van||'?'} – ${w.drink_tot||'?'}`:'',
     `Beoordeling: ${stars}`,
     '',
     w.notities?`Smaakervaring & bewaren:\n${w.notities}` : '',
@@ -1058,6 +1110,29 @@ function renderStock(){
   if(!rows.length) rows.push(`<div class="brk-row"><div class="brk-name" style="color:var(--muted)">Nog geen beoordelingen</div></div>`);
   sEl.innerHTML=rows.join('');
 
+  // Per drinkvenster
+  const dwCats=[
+    {key:'now', label:'Nu drinken',    icon:'🟢'},
+    {key:'soon',label:'Binnenkort',    icon:'🟡'},
+    {key:'wait',label:'Bewaren',       icon:'🔵'},
+    {key:'past',label:'Voorbij venster',icon:'⚪'},
+  ];
+  const dwEl=document.getElementById('drinkWindow');
+  const dwRows=dwCats.map(cat=>{
+    const count=wines.filter(w=>{const ds=drinkStatus(w);return ds&&ds.key===cat.key;}).length;
+    if(count===0)return'';
+    return`<div class="brk-row" onclick="showSubview('drink:${cat.key}','${cat.label}')">
+      <div class="brk-name">${cat.icon} ${cat.label}</div>
+      <div class="brk-val">${count} wijn${count!==1?'en':''}</div>
+    </div>`;
+  }).filter(Boolean);
+  const geenVenster=wines.filter(w=>!drinkStatus(w)).length;
+  if(geenVenster>0) dwRows.push(`<div class="brk-row" onclick="showSubview('drink:none','Geen drinkvenster')">
+    <div class="brk-name">— Geen drinkvenster</div>
+    <div class="brk-val">${geenVenster} wijn${geenVenster!==1?'en':''}</div>
+  </div>`);
+  dwEl.innerHTML=dwRows.length?dwRows.join(''):'<div class="brk-row"><div class="brk-name" style="color:var(--muted)">Nog geen drinkvensters ingesteld</div></div>';
+
   // Lage voorraad
   const low=wines.filter(w=>(w.voorraad||0)>0&&(w.voorraad||0)<=2);
   const lEl=document.getElementById('lowList');
@@ -1082,6 +1157,11 @@ function showSubview(filterKey, title){
     const s=parseInt(filterKey.split(':')[1]);
     if(s===0) list=wines.filter(w=>!w.beoordeling||w.beoordeling===0);
     else list=wines.filter(w=>w.beoordeling===s);
+  }
+  else if(filterKey.startsWith('drink:')){
+    const dk=filterKey.split(':')[1];
+    if(dk==='none') list=wines.filter(w=>!drinkStatus(w));
+    else list=wines.filter(w=>{const ds=drinkStatus(w);return ds&&ds.key===dk;});
   }
   const sv=document.getElementById('subview');
   // Sla filterKey op zodat refresh mogelijk is
@@ -1122,10 +1202,12 @@ async function handleImage(e){
 
   const prompt=`Je bent een Master of Wine. Analyseer dit wijnetiket zorgvuldig.
 Geef ALLEEN een JSON object terug. Geen uitleg, geen markdown, geen backticks.
-{"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras of blend","regio":"appellation, land","prijs_schatting":14.99,"notities":"Aroma: ...\nSmaak: ...\nAfdronk: ...\nServeertemperatuur: ...\nSpijscombinaties: ...\nBewaren: optimale bewaarperiode, drinkvenster en aanbevelingen voor kelder."}
+{"naam":"volledige wijnnaam","producent":"producent of domein","jaar":2021,"type":"red","druivenras":"ras of blend","regio":"appellation, land","prijs_schatting":14.99,"drink_van":2024,"drink_tot":2028,"notities":"Aroma: ...\nSmaak: ...\nAfdronk: ...\nServeertemperatuur: ...\nSpijscombinaties: ...\nBewaren: aanbevelingen voor de kelder."}
 type is exact één van: red, white, rose, sparkling, dessert, port
-Voor notities: schrijf elk onderdeel op een NIEUWE REGEL als "Onderwerp: omschrijving" met exact deze onderwerpen in deze volgorde: Aroma, Smaak, Afdronk, Serveertemperatuur, Spijscombinaties, Bewaren
-Gebruik null voor onleesbare velden. Begin direct met {`;
+drink_van: het jaar vanaf wanneer de wijn op zijn best is — geheel getal zoals 2024
+drink_tot: het jaar tot wanneer de wijn op zijn best is — geheel getal zoals 2028
+Voor notities: schrijf elk onderdeel op een NIEUWE REGEL als "Onderwerp: omschrijving" met exact deze onderwerpen: Aroma, Smaak, Afdronk, Serveertemperatuur, Spijscombinaties, Bewaren
+Gebruik null voor onbekende velden. Begin direct met {`;
 
   document.getElementById('scanModelTxt').textContent='Etiket analyseren met AI…';
 
@@ -1162,6 +1244,8 @@ Gebruik null voor onleesbare velden. Begin direct met {`;
     document.getElementById('fPrice').value=wine.prijs_schatting||'';
     document.getElementById('fNotes').value=wine.notities||'';
     updateNotesPreview('fNotes','fNotesPreview','fNotesEdit');
+    document.getElementById('fDrinkVan').value=wine.drink_van||'';
+    document.getElementById('fDrinkTot').value=wine.drink_tot||'';
     document.getElementById('fStock').value='1';
 
     // Duplicaatdetectie
@@ -1202,6 +1286,8 @@ function clearForm(){
   document.getElementById('fType').value='red';
   document.getElementById('fStock').value='1';
   document.getElementById('fFormat').value='standard';
+  document.getElementById('fDrinkVan').value='';
+  document.getElementById('fDrinkTot').value='';
   const fp=document.getElementById('fNotesPreview');
   if(fp){fp.innerHTML='';fp.style.display='none';}
   const fta=document.getElementById('fNotes');
@@ -1253,6 +1339,8 @@ async function saveWine(){
     voorraad:parseInt(document.getElementById('fStock').value)||1,
     notities:document.getElementById('fNotes').value.trim()||null,
     formaat:document.getElementById('fFormat').value||'standard',
+    drink_van:parseInt(document.getElementById('fDrinkVan').value)||null,
+    drink_tot:parseInt(document.getElementById('fDrinkTot').value)||null,
     foto:foto,
   };
   try{
