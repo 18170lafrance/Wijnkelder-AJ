@@ -236,6 +236,20 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 .loc-item-del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0 4px;}
 .loc-item-edit{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;}
 
+/* FILTER TOGGLE */
+.filter-toggle-bar{display:flex;gap:6px;align-items:center;padding:8px 14px 0;}
+.filter-toggle-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:var(--card);cursor:pointer;color:var(--ink);white-space:nowrap;flex-shrink:0;}
+.filter-toggle-btn.has-filter{background:var(--claret);color:#fff;border-color:var(--claret);}
+.filter-active-label{font-size:12px;color:var(--claret);font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.filter-drawer{display:none;padding:6px 14px 2px;}
+.filter-drawer.open{display:block;}
+.filter-drawer .filter-bar{flex-wrap:wrap;overflow:visible;}
+.filter-drawer .chip{margin-bottom:4px;}
+
+/* LOCATIES TAB VIEW */
+.loc-view-wrap{padding:14px;}
+.loc-view-title{font-family:Georgia,serif;font-size:20px;color:var(--claret);margin-bottom:16px;}
+
 /* TOAST + VERSION */
 #version{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 4px);right:10px;font-size:10px;color:var(--muted);opacity:.5;pointer-events:none;z-index:50;}
 #toast{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 12px);left:50%;transform:translateX(-50%) translateY(12px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:16px;font-size:13px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:400;white-space:normal;max-width:calc(100vw - 32px);text-align:center;line-height:1.5;}
@@ -261,17 +275,28 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <!-- LIBRARY -->
   <div class="view active" id="view-library">
     <div class="ctrl-bar">
-      <div class="filter-bar" id="filterBar">
-        <button class="chip active" onclick="setFilter('all',this)">Alle</button>
-        <button class="chip" onclick="setFilter('red',this)">🍷 Rood</button>
-        <button class="chip" onclick="setFilter('white',this)">🥂 Wit</button>
-        <button class="chip" onclick="setFilter('rose',this)">🌸 Rosé</button>
-        <button class="chip" onclick="setFilter('sparkling',this)">✨ Mousseux</button>
-        <button class="chip" onclick="setFilter('port',this)">🍾 Port</button>
-        <button class="chip" onclick="setFilter('instock',this)">Op voorraad</button>
-        <button class="chip" onclick="setFilter('drink:now',this)">🟢 Nu drinken</button>
-        <button class="chip" onclick="setFilter('drink:soon',this)">🟡 Binnenkort</button>
-        <button class="chip" onclick="setFilter('drink:wait',this)">🔵 Bewaren</button>
+      <!-- Compacte filterknop + actief filter label -->
+      <div class="filter-toggle-bar">
+        <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterDrawer()">
+          <span>⚙️ Filter</span><span id="filterToggleArrow">▾</span>
+        </button>
+        <span class="filter-active-label" id="filterActiveLabel">Alle wijnen</span>
+        <button class="filter-toggle-btn" id="filterResetBtn" onclick="resetFilter()" style="display:none">✕ Wis</button>
+      </div>
+      <!-- Uitklapbare filters -->
+      <div class="filter-drawer" id="filterDrawer">
+        <div class="filter-bar" id="filterBar">
+          <button class="chip active" onclick="setFilter('all',this)">Alle</button>
+          <button class="chip" onclick="setFilter('red',this)">🍷 Rood</button>
+          <button class="chip" onclick="setFilter('white',this)">🥂 Wit</button>
+          <button class="chip" onclick="setFilter('rose',this)">🌸 Rosé</button>
+          <button class="chip" onclick="setFilter('sparkling',this)">✨ Mousseux</button>
+          <button class="chip" onclick="setFilter('port',this)">🍾 Port</button>
+          <button class="chip" onclick="setFilter('instock',this)">Op voorraad</button>
+          <button class="chip" onclick="setFilter('drink:now',this)">🟢 Nu drinken</button>
+          <button class="chip" onclick="setFilter('drink:soon',this)">🟡 Binnenkort</button>
+          <button class="chip" onclick="setFilter('drink:wait',this)">🔵 Bewaren</button>
+        </div>
       </div>
       <div class="sort-bar">
         <label>Sortering:</label>
@@ -383,7 +408,16 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="brk-card" id="byLocation"></div>
       <div class="sec-title" style="margin-top:20px">Per drinkvenster</div>
       <div class="brk-card" id="drinkWindow"></div>
-      <div class="sec-title" style="margin-top:20px">Locaties beheren</div>
+      <div class="sec-title" style="margin-top:20px">Lage voorraad</div>
+      <div class="low-list" id="lowList"></div>
+    </div>
+  </div>
+</main>
+
+  <!-- LOCATIES -->
+  <div class="view" id="view-locaties">
+    <div class="loc-view-wrap">
+      <div class="loc-view-title">📍 Locaties</div>
       <div class="loc-mgr">
         <div class="loc-add-row">
           <input type="text" id="newLocNaam" placeholder="Naam nieuwe locatie, bijv. Kelder thuis" maxlength="40">
@@ -391,8 +425,9 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         </div>
         <div id="locatieList"></div>
       </div>
-      <div class="sec-title" style="margin-top:20px">Lage voorraad</div>
-      <div class="low-list" id="lowList"></div>
+      <!-- Overzicht per locatie -->
+      <div class="sec-title" style="margin-top:20px">Overzicht per locatie</div>
+      <div id="locatiesOverzicht"></div>
     </div>
   </div>
 </main>
@@ -493,6 +528,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <button class="tab active" id="tab-library" onclick="switchTab('library')"><span class="ti">📚</span>Bibliotheek</button>
   <button class="tab" id="tab-scan" onclick="switchTab('scan')"><span class="ti">📷</span>Scan</button>
   <button class="tab" id="tab-stock" onclick="switchTab('stock')"><span class="ti">📦</span>Voorraad</button>
+  <button class="tab" id="tab-locaties" onclick="switchTab('locaties')"><span class="ti">📍</span>Locaties</button>
 </nav>
 
 <div id="toast"></div>
@@ -782,12 +818,10 @@ function populateLocatieSelects(){
     sel.innerHTML='<option value="">— Geen locatie —</option>'+locaties.map(l=>`<option value="${l.id}">${esc(l.naam)}</option>`).join('');
     if(cur) sel.value=cur;
   }
-  // Voeg locatie-chips toe aan filterbalk
+  // Voeg locatie-chips toe aan filterbalk (in de drawer)
   const filterBar=document.getElementById('filterBar');
   if(filterBar){
-    // Verwijder bestaande locatie-chips
     filterBar.querySelectorAll('.loc-chip').forEach(c=>c.remove());
-    // Voeg toe per locatie
     locaties.forEach(l=>{
       const btn=document.createElement('button');
       btn.className='chip loc-chip';
@@ -835,6 +869,33 @@ async function deleteLocatie(id){
     renderLocatieBeheer();
     toast(`Locatie "${loc.naam}" verwijderd`);
   }catch(e){toast('Verwijderen mislukt: '+e.message);}
+}
+
+function renderLocatiesOverzicht(){
+  const el=document.getElementById('locatiesOverzicht');
+  if(!el)return;
+  if(!locaties.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Nog geen locaties aangemaakt</div>';
+    return;
+  }
+  el.innerHTML=locaties.map(loc=>{
+    const wls=Object.entries(wijnLocaties)
+      .map(([wid,arr])=>({wijn:wines.find(w=>w.id===wid),wl:arr.find(x=>x.locatie_id===loc.id)}))
+      .filter(x=>x.wijn&&x.wl&&x.wl.voorraad>0);
+    if(!wls.length) return`<div class="brk-card" style="margin-bottom:14px">
+      <div class="brk-row"><span style="font-size:16px;margin-right:8px">📍</span><div class="brk-name" style="font-weight:600">${esc(loc.naam)}</div><div class="brk-val">0 flessen</div></div>
+      <div style="padding:10px 14px;font-size:13px;color:var(--muted)">Geen wijnen op deze locatie</div>
+    </div>`;
+    const totaal=wls.reduce((s,x)=>s+x.wl.voorraad,0);
+    return`<div class="brk-card" style="margin-bottom:14px">
+      <div class="brk-row"><span style="font-size:16px;margin-right:8px">📍</span><div class="brk-name" style="font-weight:600">${esc(loc.naam)}</div><div class="brk-val">${totaal} fles${totaal!==1?'sen':''}</div></div>
+      ${wls.map(({wijn,wl})=>`<div class="brk-row" onclick="openPanel('${wijn.id}')" style="padding-left:36px">
+        <div class="brk-name" style="font-size:13px">${esc(wijn.naam)}${wijn.jaar?' '+wijn.jaar:''}</div>
+        ${wl.positie?`<span style="font-size:11px;color:var(--muted);margin-right:8px">${esc(wl.positie)}</span>`:''}
+        <div class="brk-val" style="font-size:13px">${wl.voorraad} ×</div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
 }
 
 function renderLocatieBeheer(){
@@ -996,11 +1057,46 @@ function drinkBadgeHTML(w){
   return`<span class="badge ${ds.cls}">${ds.icon} ${ds.label}</span>`;
 }
 
+/* ── FILTER TOGGLE ── */
+function toggleFilterDrawer(){
+  const drawer=document.getElementById('filterDrawer');
+  const arrow=document.getElementById('filterToggleArrow');
+  const isOpen=drawer.classList.toggle('open');
+  arrow.textContent=isOpen?'▴':'▾';
+}
+
+function resetFilter(){
+  filter='all';
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  const allBtn=document.querySelector('#filterBar .chip');
+  if(allBtn) allBtn.classList.add('active');
+  updateFilterLabel('Alle wijnen',false);
+  // Sluit drawer
+  document.getElementById('filterDrawer').classList.remove('open');
+  document.getElementById('filterToggleArrow').textContent='▾';
+  renderLib();
+}
+
+function updateFilterLabel(label,hasFilter){
+  const lbl=document.getElementById('filterActiveLabel');
+  const btn=document.getElementById('filterToggleBtn');
+  const rst=document.getElementById('filterResetBtn');
+  if(lbl) lbl.textContent=label;
+  if(btn) btn.classList.toggle('has-filter',hasFilter);
+  if(rst) rst.style.display=hasFilter?'flex':'none';
+}
+
 /* ── LIBRARY ── */
 function setFilter(f,el){
   filter=f;
   document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
+  // Label bijwerken
+  const isAll=f==='all';
+  updateFilterLabel(isAll?'Alle wijnen':el.textContent.trim(),!isAll);
+  // Drawer sluiten na keuze
+  document.getElementById('filterDrawer').classList.remove('open');
+  document.getElementById('filterToggleArrow').textContent='▾';
   renderLib();
 }
 
@@ -1687,7 +1783,8 @@ function switchTab(name){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
   document.getElementById('tab-'+name).classList.add('active');
-  if(name==='stock'){renderStock();renderLocatieBeheer();}
+  if(name==='stock') renderStock();
+  if(name==='locaties'){renderLocatieBeheer();renderLocatiesOverzicht();}
   // Subview sluiten bij tab-wissel
   document.getElementById('subview').classList.remove('open');
 }
