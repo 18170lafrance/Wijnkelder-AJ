@@ -316,6 +316,42 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 #toast{position:fixed;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 12px);left:50%;transform:translateX(-50%) translateY(12px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:16px;font-size:13px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:400;white-space:normal;max-width:calc(100vw - 32px);text-align:center;line-height:1.5;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* ADMIN DATA */
+.admin-wrap{padding:14px;}
+.admin-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden;}
+.admin-card-head{font-family:Georgia,serif;font-size:16px;font-weight:700;color:var(--claret);padding:14px 14px 10px;}
+.admin-select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--ink);background:var(--cream);margin:14px 14px 0;box-sizing:border-box;width:calc(100% - 28px);}
+.admin-select:focus{outline:none;border-color:var(--claret);}
+.admin-stats{display:flex;gap:8px;padding:10px 14px;flex-wrap:wrap;}
+.admin-stat{background:var(--warm);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--muted);}
+.admin-stat b{color:var(--ink);font-size:14px;}
+.admin-table-wrap{overflow-x:auto;padding:0 14px 14px;-webkit-overflow-scrolling:touch;}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px;min-width:600px;}
+.admin-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--claret);color:var(--claret);font-size:11px;text-transform:uppercase;white-space:nowrap;}
+.admin-table td{padding:7px 6px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.admin-table tr:hover td{background:var(--warm);}
+.admin-table .at-thumb{width:32px;height:32px;border-radius:4px;object-fit:cover;}
+.admin-table .at-noimg{width:32px;height:32px;border-radius:4px;background:var(--warm);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.admin-table .at-actions{display:flex;gap:4px;white-space:nowrap;}
+.admin-table .at-btn{padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-size:12px;color:var(--ink);}
+.admin-table .at-btn:hover{border-color:var(--claret);color:var(--claret);}
+.admin-table .at-btn.del{color:var(--danger);}
+.admin-table .at-btn.del:hover{border-color:var(--danger);background:var(--danger);color:#fff;}
+.admin-table .at-voorraad{display:flex;align-items:center;gap:4px;}
+.admin-table .at-voorraad button{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:var(--card);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.admin-table .at-voorraad button:hover{border-color:var(--claret);color:var(--claret);}
+.admin-edit-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+.admin-edit-overlay.open{display:flex;}
+.admin-edit-card{background:var(--card);border-radius:var(--r);max-width:420px;width:100%;max-height:80vh;overflow-y:auto;padding:20px;}
+.admin-edit-card h3{font-family:Georgia,serif;color:var(--claret);margin:0 0 16px;font-size:18px;}
+.admin-edit-card label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:600;}
+.admin-edit-card input,.admin-edit-card select{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--ink);background:var(--cream);box-sizing:border-box;}
+.admin-edit-card input:focus,.admin-edit-card select:focus{outline:none;border-color:var(--claret);}
+.admin-edit-btns{display:flex;gap:8px;margin-top:16px;}
+.admin-edit-btns button{flex:1;padding:10px;border-radius:8px;border:none;font-size:14px;cursor:pointer;}
+.admin-edit-btns .ae-save{background:var(--claret);color:#fff;}
+.admin-edit-btns .ae-cancel{background:var(--warm);color:var(--ink);border:1px solid var(--border);}
+
 @media(prefers-color-scheme:dark){
   :root{--cream:#1A1410;--warm:#2A201A;--ink:#F0EBE3;--muted:#9A8E88;--border:#3A2E28;--card:#231C18;}
 }
@@ -484,7 +520,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <div class="handleiding-header">
         <div style="font-size:48px;margin-bottom:8px">🍷</div>
         <div class="handleiding-title">Wijnbieb</div>
-        <div class="handleiding-sub">Gebruikershandleiding · v2.04</div>
+        <div class="handleiding-sub">Gebruikershandleiding · v2.05</div>
       </div>
 
       <div class="h-section">
@@ -494,13 +530,14 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
 
       <div class="h-section">
         <div class="h-section-title">2. Navigatie</div>
-        <p>De app heeft zes tabbladen onderaan het scherm:</p>
+        <p>De app heeft zeven tabbladen onderaan het scherm:</p>
         <div class="h-item"><span class="h-item-icon">📚</span><div><strong>Bibliotheek</strong> — Je volledige wijncollectie met filters en sortering.</div></div>
         <div class="h-item"><span class="h-item-icon">📷</span><div><strong>Scan</strong> — Voeg een wijn toe via foto of handmatige invoer.</div></div>
         <div class="h-item"><span class="h-item-icon">📦</span><div><strong>Voorraad</strong> — Statistieken: totalen per type, beoordeling en lage voorraad.</div></div>
         <div class="h-item"><span class="h-item-icon">📍</span><div><strong>Locaties</strong> — Beheer opslaglocaties (kelder, rek, koelkast, etc.).</div></div>
         <div class="h-item"><span class="h-item-icon">💾</span><div><strong>Back-up</strong> — Maak een back-up van je collectie of herstel vanuit een bestand.</div></div>
         <div class="h-item"><span class="h-item-icon">📖</span><div><strong>Handleiding</strong> — Deze pagina met uitleg over de app.</div></div>
+        <div class="h-item"><span class="h-item-icon">⚙️</span><div><strong>Beheer</strong> — Databeheer: bekijk, bewerk en verwijder wijnen, pas voorraad aan.</div></div>
       </div>
 
       <div class="h-section">
@@ -577,7 +614,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
         <div class="h-tip">⚠️ Het terugzetten overschrijft je volledige collectie. Maak eerst een back-up van je huidige data als je die wilt bewaren.</div>
       </div>
 
-      <div class="handleiding-footer">Wijnbieb v2.04 — Veel plezier met je collectie! 🥂</div>
+      <div class="handleiding-footer">Wijnbieb v2.05 — Veel plezier met je collectie! 🥂</div>
     </div>
   </div>
 
@@ -627,6 +664,45 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
       <!-- Overzicht per locatie -->
       <div class="sec-title" style="margin-top:20px">Overzicht per locatie</div>
       <div id="locatiesOverzicht"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="view" id="view-admin">
+    <div class="admin-wrap">
+      <div class="admin-card">
+        <div class="admin-card-head">🗄️ Databeheer</div>
+        <div class="admin-stats" id="adminStats"></div>
+        <div class="admin-table-wrap" id="adminTableWrap" style="display:none">
+          <table class="admin-table">
+            <thead><tr><th></th><th>Wijn</th><th>Type</th><th>Jaar</th><th>Voorraad</th><th>Locatie</th><th>Acties</th></tr></thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+        </div>
+        <div id="adminEmpty" style="display:none;text-align:center;padding:20px;font-size:13px;color:var(--muted)">Geen wijnen in de collectie.</div>
+      </div>
+    </div>
+  </div>
+  <div class="admin-edit-overlay" id="adminEditOverlay">
+    <div class="admin-edit-card">
+      <h3 id="adminEditTitle">Wijn bewerken</h3>
+      <input type="hidden" id="aeId">
+      <label>Naam</label><input type="text" id="aeName">
+      <label>Producent</label><input type="text" id="aeProducent">
+      <label>Type</label>
+      <select id="aeType"><option value="red">Rood</option><option value="white">Wit</option><option value="rose">Rosé</option><option value="sparkling">Mousseux</option><option value="dessert">Dessert</option><option value="port">Port</option></select>
+      <label>Jaar</label><input type="number" id="aeJaar" min="1900" max="2099">
+      <label>Land / Regio</label><input type="text" id="aeRegio">
+      <label>Druivenras</label><input type="text" id="aeDruif">
+      <label>Beoordeling (1-5)</label><input type="number" id="aeScore" min="1" max="5">
+      <label>Notities</label><input type="text" id="aeNotities">
+      <label>Locatie</label>
+      <select id="aeLocatie"><option value="">— Geen —</option></select>
+      <label>Voorraad</label><input type="number" id="aeVoorraad" min="0">
+      <div class="admin-edit-btns">
+        <button class="ae-cancel" onclick="adminCloseEdit()">Annuleren</button>
+        <button class="ae-save" onclick="adminSaveEdit()">Opslaan</button>
+      </div>
     </div>
   </div>
 </main>
@@ -723,13 +799,14 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   <div class="wine-list" id="subviewList"></div>
 </div>
 
-<nav class="tabbar">
+<nav class="tabbar" id="tabbar">
   <button class="tab active" id="tab-library" onclick="switchTab('library')"><span class="ti">📚</span>Bibliotheek</button>
   <button class="tab" id="tab-scan" onclick="switchTab('scan')"><span class="ti">📷</span>Scan</button>
   <button class="tab" id="tab-stock" onclick="switchTab('stock')"><span class="ti">📦</span>Voorraad</button>
   <button class="tab" id="tab-locaties" onclick="switchTab('locaties')"><span class="ti">📍</span>Locaties</button>
   <button class="tab" id="tab-backup" onclick="switchTab('backup')"><span class="ti">💾</span>Back-up</button>
   <button class="tab" id="tab-handleiding" onclick="switchTab('handleiding')"><span class="ti">📖</span>Handleiding</button>
+  <button class="tab" id="tab-admin" onclick="switchTab('admin')"><span class="ti">⚙️</span>Beheer</button>
 </nav>
 
 <div class="loc-picker-overlay" id="locPickerOverlay" onclick="if(event.target===this)closeLocPicker()">
@@ -740,7 +817,7 @@ main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 16p
   </div>
 </div>
 <div id="toast"></div>
-<div id="version">v2.04</div>
+<div id="version">v2.05</div>
 
 <script>
 const SB_URL='https://qjlgbyzogovfxdkadvan.supabase.co';
@@ -1012,6 +1089,132 @@ async function sbUpsertWijnLocatie(wijnId,locatieId,voorraad){
 async function sbDeleteWijnLocatie(wijnId,locatieId){
   const r=await fetch(SB_URL+'/rest/v1/wijn_locaties?wijn_id=eq.'+wijnId+'&locatie_id=eq.'+locatieId,{method:'DELETE',headers:hdrs()});
   if(!r.ok)throw new Error(await r.text());
+}
+
+/* ── ADMIN DATA BEHEER ── */
+let adminWijnen=[];
+let adminLocatiesList=[];
+let adminWijnLocaties=[];
+
+async function adminLoadData(){
+  try{
+    const [wR,lR,wlR]=await Promise.all([
+      fetch(SB_URL+'/rest/v1/wijnen?select=*&order=toegevoegd_op.desc',{headers:{...hdrs(),'Prefer':'return=representation'}}),
+      fetch(SB_URL+'/rest/v1/locaties?select=*&order=naam.asc',{headers:{...hdrs(),'Prefer':'return=representation'}}),
+      fetch(SB_URL+'/rest/v1/wijn_locaties?select=*',{headers:{...hdrs(),'Prefer':'return=representation'}})
+    ]);
+    adminWijnen=wR.ok?await wR.json():[];
+    adminLocatiesList=lR.ok?await lR.json():[];
+    adminWijnLocaties=wlR.ok?await wlR.json():[];
+  }catch(e){toast('Fout bij laden: '+e.message);return;}
+  adminRenderData();
+}
+
+function adminRenderData(){
+  const statsEl=document.getElementById('adminStats');
+  const tableWrap=document.getElementById('adminTableWrap');
+  const emptyEl=document.getElementById('adminEmpty');
+  const tbody=document.getElementById('adminTableBody');
+  const total=adminWijnen.length;
+  const voorraadTotaal=adminWijnLocaties.reduce((s,wl)=>s+(wl.voorraad||0),0);
+  const locCount=adminLocatiesList.length;
+  statsEl.innerHTML=`<div class="admin-stat"><b>${total}</b> wijnen</div><div class="admin-stat"><b>${voorraadTotaal}</b> flessen</div><div class="admin-stat"><b>${locCount}</b> locaties</div>`;
+  if(!total){tableWrap.style.display='none';emptyEl.style.display='block';return;}
+  emptyEl.style.display='none';tableWrap.style.display='block';
+  const locMap={};adminLocatiesList.forEach(l=>locMap[l.id]=l.naam);
+  const wlMap={};adminWijnLocaties.forEach(wl=>{if(!wlMap[wl.wijn_id])wlMap[wl.wijn_id]=[];wlMap[wl.wijn_id].push(wl);});
+  const typeLabel={red:'Rood',white:'Wit',rose:'Rosé',sparkling:'Mousseux',dessert:'Dessert',port:'Port'};
+  tbody.innerHTML=adminWijnen.map(w=>{
+    const wls=wlMap[w.id]||[];
+    const totV=wls.reduce((s,x)=>s+(x.voorraad||0),0);
+    const locStr=wls.map(x=>(locMap[x.locatie_id]||'?')+' ('+x.voorraad+')').join(', ')||'—';
+    const img=w.thumbnail?`<img class="at-thumb" src="${w.thumbnail}" onerror="this.outerHTML='<div class=\\'at-noimg\\'>🍷</div>'">`:'<div class="at-noimg">🍷</div>';
+    return `<tr>
+      <td>${img}</td>
+      <td><strong>${esc(w.naam||'')}</strong><br><span style="font-size:11px;color:var(--muted)">${esc(w.producent||'')}</span></td>
+      <td>${typeLabel[w.type]||w.type||''}</td>
+      <td>${w.jaar||'—'}</td>
+      <td><div class="at-voorraad"><button onclick="adminAdjustVoorraad('${w.id}',-1)">−</button><span id="av-${w.id}">${totV}</span><button onclick="adminAdjustVoorraad('${w.id}',1)">+</button></div></td>
+      <td style="font-size:11px">${esc(locStr)}</td>
+      <td><div class="at-actions"><button class="at-btn" onclick="adminOpenEdit('${w.id}')">✏️</button><button class="at-btn del" onclick="adminDeleteWijn('${w.id}','${esc(w.naam||'')}')">🗑</button></div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function adminAdjustVoorraad(wijnId,delta){
+  const wls=adminWijnLocaties.filter(x=>x.wijn_id===wijnId);
+  if(!wls.length){toast('Geen locatie gekoppeld aan deze wijn');return;}
+  const wl=wls[0];
+  const nv=Math.max(0,(wl.voorraad||0)+delta);
+  const r=await fetch(SB_URL+'/rest/v1/wijn_locaties?id=eq.'+wl.id,{method:'PATCH',headers:{...hdrs(),'Prefer':'return=representation'},body:JSON.stringify({voorraad:nv})});
+  if(!r.ok){toast('Voorraad bijwerken mislukt');return;}
+  wl.voorraad=nv;
+  adminRenderData();
+}
+
+async function adminDeleteWijn(wijnId,naam){
+  if(!confirm('Wijn "'+naam+'" definitief verwijderen?'))return;
+  await fetch(SB_URL+'/rest/v1/wijn_locaties?wijn_id=eq.'+wijnId,{method:'DELETE',headers:hdrs()});
+  const r=await fetch(SB_URL+'/rest/v1/wijnen?id=eq.'+wijnId,{method:'DELETE',headers:hdrs()});
+  if(!r.ok){toast('Verwijderen mislukt');return;}
+  adminWijnen=adminWijnen.filter(w=>w.id!==wijnId);
+  adminWijnLocaties=adminWijnLocaties.filter(wl=>wl.wijn_id!==wijnId);
+  adminRenderData();
+  toast('Wijn verwijderd');
+}
+
+function adminOpenEdit(wijnId){
+  const w=adminWijnen.find(x=>x.id===wijnId);
+  if(!w)return;
+  document.getElementById('aeId').value=w.id;
+  document.getElementById('aeName').value=w.naam||'';
+  document.getElementById('aeProducent').value=w.producent||'';
+  document.getElementById('aeType').value=w.type||'red';
+  document.getElementById('aeJaar').value=w.jaar||'';
+  document.getElementById('aeRegio').value=w.regio||'';
+  document.getElementById('aeDruif').value=w.druivenras||'';
+  document.getElementById('aeScore').value=w.score||'';
+  document.getElementById('aeNotities').value=w.notities||'';
+  document.getElementById('adminEditTitle').textContent='Bewerk: '+(w.naam||'Wijn');
+  const locSel=document.getElementById('aeLocatie');
+  locSel.innerHTML='<option value="">— Geen —</option>'+adminLocatiesList.map(l=>`<option value="${l.id}">${esc(l.naam)}</option>`).join('');
+  const wls=adminWijnLocaties.filter(x=>x.wijn_id===wijnId);
+  if(wls.length)locSel.value=wls[0].locatie_id;
+  document.getElementById('aeVoorraad').value=wls.length?wls[0].voorraad||0:0;
+  document.getElementById('adminEditOverlay').classList.add('open');
+}
+
+function adminCloseEdit(){document.getElementById('adminEditOverlay').classList.remove('open');}
+
+async function adminSaveEdit(){
+  const id=document.getElementById('aeId').value;
+  const payload={
+    naam:document.getElementById('aeName').value.trim(),
+    producent:document.getElementById('aeProducent').value.trim(),
+    type:document.getElementById('aeType').value,
+    jaar:parseInt(document.getElementById('aeJaar').value)||null,
+    regio:document.getElementById('aeRegio').value.trim(),
+    druivenras:document.getElementById('aeDruif').value.trim(),
+    score:parseInt(document.getElementById('aeScore').value)||null,
+    notities:document.getElementById('aeNotities').value.trim()
+  };
+  const r=await fetch(SB_URL+'/rest/v1/wijnen?id=eq.'+id,{method:'PATCH',headers:{...hdrs(),'Prefer':'return=representation'},body:JSON.stringify(payload)});
+  if(!r.ok){toast('Opslaan mislukt');return;}
+  const w=adminWijnen.find(x=>x.id===id);
+  if(w)Object.assign(w,payload);
+  const locId=document.getElementById('aeLocatie').value;
+  const voorraad=parseInt(document.getElementById('aeVoorraad').value)||0;
+  if(locId){
+    const wls=adminWijnLocaties.filter(x=>x.wijn_id===id);
+    if(wls.length){
+      await fetch(SB_URL+'/rest/v1/wijn_locaties?id=eq.'+wls[0].id,{method:'PATCH',headers:{...hdrs(),'Prefer':'return=representation'},body:JSON.stringify({voorraad,locatie_id:locId})});
+      wls[0].voorraad=voorraad;
+      wls[0].locatie_id=locId;
+    }
+  }
+  adminCloseEdit();
+  adminRenderData();
+  toast('Wijn bijgewerkt');
 }
 
 /* ── INIT ── */
@@ -2288,6 +2491,7 @@ function switchTab(name){
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='stock') renderStock();
   if(name==='locaties'){renderLocatieBeheer();renderLocatiesOverzicht();}
+  if(name==='admin') adminLoadData();
   document.getElementById('subview').classList.remove('open');
 }
 
